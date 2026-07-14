@@ -48,7 +48,7 @@
 
         .app {
             width: 100%;
-            max-width: 780px;
+            max-width: 820px;
             background: var(--surface);
             border-radius: 16px;
             border: 1px solid var(--border);
@@ -90,13 +90,8 @@
             animation: pulse-dot 1.2s ease-in-out infinite;
         }
         @keyframes pulse-dot {
-            0%,
-            100% {
-                box-shadow: 0 0 8px #3dd68c60;
-            }
-            50% {
-                box-shadow: 0 0 22px #3dd68ccc;
-            }
+            0%, 100% { box-shadow: 0 0 8px #3dd68c60; }
+            50% { box-shadow: 0 0 22px #3dd68ccc; }
         }
 
         .status-tag {
@@ -117,7 +112,6 @@
             background: #3dd68c10;
         }
 
-        /* Canvas */
         .viz-container {
             position: relative;
             width: 100%;
@@ -144,7 +138,6 @@
             letter-spacing: 0.4px;
         }
 
-        /* Controls */
         .controls {
             display: flex;
             flex-wrap: wrap;
@@ -157,13 +150,27 @@
             gap: 5px;
             min-width: 90px;
         }
+        .flex-grow { flex: 1; min-width: 140px; }
+        
         .control-group label {
             font-size: 0.7rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text2);
+            display: flex;
+            align-items: center;
         }
+        .val-display {
+            color: var(--accent);
+            font-family: var(--mono);
+            font-weight: 500;
+            font-size: 0.7rem;
+            text-transform: none;
+            letter-spacing: 0;
+            margin-left: 6px;
+        }
+
         .control-group input[type="number"] {
             background: var(--surface2);
             border: 1px solid var(--border);
@@ -180,21 +187,42 @@
             border-color: var(--accent);
             box-shadow: 0 0 0 3px var(--accent-glow);
         }
-        .control-group .step-display {
-            font-family: var(--mono);
-            font-size: 0.85rem;
-            color: var(--accent);
-            padding: 9px 0;
-            font-weight: 500;
-            letter-spacing: 0.3px;
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.1); }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
 
-        /* Cluster size buttons */
-        .cluster-sizes {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 7px;
-        }
+        .cluster-sizes { display: flex; flex-wrap: wrap; gap: 7px; }
         .cluster-btn {
             padding: 8px 14px;
             border-radius: 20px;
@@ -209,20 +237,13 @@
             font-family: var(--mono);
             white-space: nowrap;
         }
-        .cluster-btn:hover {
-            border-color: #6a6f80;
-            color: #d0d4e0;
-            background: #222636;
-        }
+        .cluster-btn:hover { border-color: #6a6f80; color: #d0d4e0; background: #222636; }
         .cluster-btn.selected {
             border-color: var(--accent);
             color: #fff;
             background: #3b6fd420;
             box-shadow: 0 0 12px var(--accent-glow);
             font-weight: 700;
-        }
-        .cluster-btn.large-cluster {
-            position: relative;
         }
         .cluster-btn.large-cluster::after {
             content: '⚠';
@@ -231,12 +252,7 @@
             opacity: 0.7;
         }
 
-        /* Waveform type */
-        .waveform-select {
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-        }
+        .waveform-select { display: flex; gap: 4px; flex-wrap: wrap; }
         .wave-btn {
             padding: 7px 13px;
             border-radius: 20px;
@@ -249,10 +265,7 @@
             letter-spacing: 0.3px;
             transition: all var(--transition);
         }
-        .wave-btn:hover {
-            border-color: #6a6f80;
-            color: #d0d4e0;
-        }
+        .wave-btn:hover { border-color: #6a6f80; color: #d0d4e0; }
         .wave-btn.selected {
             border-color: #c084fc;
             color: #e8d5ff;
@@ -260,39 +273,21 @@
             box-shadow: 0 0 10px #7c3aed30;
         }
 
-        /* Volume */
-        .volume-group {
-            flex: 1;
-            min-width: 120px;
-        }
-        .volume-group input[type="range"] {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: var(--border);
-            outline: none;
-            cursor: pointer;
-            margin-top: 6px;
-        }
-        .volume-group input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: #fff;
-            border: 2px solid var(--accent);
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
+        .volume-group { flex: 1; min-width: 120px; }
         .vol-label-row {
             display: flex;
             justify-content: space-between;
             font-size: 0.7rem;
             color: var(--text2);
+            margin-top: 4px;
         }
 
-        /* Play button */
+        .tone-shaping {
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+            margin-top: 8px;
+        }
+
         .play-section {
             display: flex;
             align-items: center;
@@ -315,29 +310,16 @@
             position: relative;
             overflow: hidden;
         }
-        .btn-play:hover {
-            box-shadow: 0 8px 32px #3dd68c55;
-            transform: translateY(-1px);
-        }
-        .btn-play:active {
-            transform: scale(0.96);
-            transition: 0.08s;
-        }
+        .btn-play:hover { box-shadow: 0 8px 32px #3dd68c55; transform: translateY(-1px); }
+        .btn-play:active { transform: scale(0.96); transition: 0.08s; }
         .btn-play.playing {
             background: var(--stop);
             color: #fff;
             box-shadow: 0 6px 24px #f54e5e40;
         }
-        .btn-play.playing:hover {
-            box-shadow: 0 8px 32px #f54e5e60;
-        }
-        .btn-play:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
+        .btn-play.playing:hover { box-shadow: 0 8px 32px #f54e5e60; }
+        .btn-play:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
-        /* Info bar */
         .info-bar {
             display: flex;
             flex-wrap: wrap;
@@ -351,46 +333,22 @@
             border: 1px solid var(--border);
             line-height: 1.6;
         }
-        .info-bar span {
-            color: #c8cde0;
-            font-weight: 500;
-        }
-        .info-bar .highlight {
-            color: var(--accent);
-            font-weight: 700;
-        }
+        .info-bar span { color: #c8cde0; font-weight: 500; }
+        .info-bar .highlight { color: var(--accent); font-weight: 700; }
 
         @media (max-width: 600px) {
-            .app {
-                padding: 16px 14px 18px;
-                gap: 14px;
-                border-radius: 12px;
-            }
-            .header h1 {
-                font-size: 1.1rem;
-            }
-            .viz-container {
-                height: 110px;
-            }
-            .btn-play {
-                padding: 12px 28px;
-                font-size: 0.9rem;
-            }
-            .cluster-btn {
-                padding: 6px 10px;
-                font-size: 0.7rem;
-            }
-            .control-group input[type="number"] {
-                width: 90px;
-                font-size: 0.8rem;
-                padding: 7px 10px;
-            }
+            .app { padding: 16px 14px 18px; gap: 14px; border-radius: 12px; }
+            .header h1 { font-size: 1.1rem; }
+            .viz-container { height: 110px; }
+            .btn-play { padding: 12px 28px; font-size: 0.9rem; }
+            .cluster-btn { padding: 6px 10px; font-size: 0.7rem; }
+            .control-group input[type="number"] { width: 90px; font-size: 0.8rem; padding: 7px 10px; }
+            .flex-grow { min-width: 100%; }
         }
     </style>
 </head>
 <body>
     <div class="app">
-        <!-- Header -->
         <div class="header">
             <h1>
                 <span class="dot" id="statusDot"></span>
@@ -399,31 +357,26 @@
             <span class="status-tag" id="statusTag">Idle</span>
         </div>
 
-        <!-- Waveform Visualizer -->
         <div class="viz-container" id="vizContainer">
             <canvas id="vizCanvas"></canvas>
             <div class="viz-overlay" id="vizLabel">time domain</div>
         </div>
 
-        <!-- Controls Row 1: Frequency & Cluster Size -->
         <div class="controls">
             <div class="control-group">
-                <label for="baseFreq">Base Frequency (Hz)</label>
+                <label for="baseFreq">Base Freq (Hz)</label>
                 <input type="number" id="baseFreq" value="250" min="20" max="8000" step="0.1">
             </div>
-            <div class="control-group">
-                <label>Step Size</label>
-                <div class="step-display">0.00001 Hz</div>
+            <div class="control-group flex-grow">
+                <label for="stepSize">Step Size <span id="stepVal" class="val-display">0.01 Hz</span></label>
+                <input type="range" id="stepSize" min="0" max="100" value="10" step="1">
             </div>
             <div class="control-group" style="flex:2;min-width:200px;">
                 <label>Cluster Size</label>
-                <div class="cluster-sizes" id="clusterButtons">
-                    <!-- Generated by JS -->
-                </div>
+                <div class="cluster-sizes" id="clusterButtons"></div>
             </div>
         </div>
 
-        <!-- Controls Row 2: Waveform & Volume -->
         <div class="controls">
             <div class="control-group">
                 <label>Waveform</label>
@@ -445,12 +398,36 @@
             </div>
         </div>
 
-        <!-- Play Button -->
+        <div class="controls tone-shaping">
+            <div class="control-group flex-grow">
+                <label for="filterCutoff">Filter Cutoff <span id="cutoffVal" class="val-display">20.0 kHz</span></label>
+                <input type="range" id="filterCutoff" min="0" max="100" value="100" step="1">
+            </div>
+            <div class="control-group flex-grow">
+                <label for="filterQ">Resonance (Q) <span id="qVal" class="val-display">0.1</span></label>
+                <input type="range" id="filterQ" min="0" max="100" value="0" step="1">
+            </div>
+            <div class="control-group flex-grow">
+                <label for="stereoSpread">Stereo Spread <span id="spreadVal" class="val-display">50%</span></label>
+                <input type="range" id="stereoSpread" min="0" max="100" value="50" step="1">
+            </div>
+        </div>
+
+        <div class="controls tone-shaping">
+            <div class="control-group flex-grow">
+                <label for="attackTime">Attack (s) <span id="attackVal" class="val-display">0.15</span></label>
+                <input type="range" id="attackTime" min="0" max="100" value="15" step="1">
+            </div>
+            <div class="control-group flex-grow">
+                <label for="releaseTime">Release (s) <span id="releaseVal" class="val-display">0.50</span></label>
+                <input type="range" id="releaseTime" min="0" max="100" value="50" step="1">
+            </div>
+        </div>
+
         <div class="play-section">
             <button class="btn-play" id="btnPlay" disabled>▶ Play Cluster</button>
         </div>
 
-        <!-- Info Bar -->
         <div class="info-bar" id="infoBar">
             Cluster range: <span id="infoRange">—</span> &nbsp;|&nbsp;
             Spread: <span class="highlight" id="infoSpread">—</span> &nbsp;|&nbsp;
@@ -460,34 +437,23 @@
 
     <script>
         (function() {
-            // ─────────────────────────────────────
-            // AudioEngine – manages all Web Audio
-            // ─────────────────────────────────────
             class AudioEngine {
                 constructor() {
-                    /** @type {AudioContext|null} */
                     this.ctx = null;
-                    /** @type {OscillatorNode[]} */
                     this.oscillators = [];
-                    /** @type {GainNode|null} */
-                    this.clusterGain = null; // auto-normalization gain (1/N)
-                    /** @type {GainNode|null} */
-                    this.envelopeGain = null; // fade in/out
-                    /** @type {GainNode|null} */
-                    this.volumeGain = null; // user volume
-                    /** @type {AnalyserNode|null} */
+                    this.panners = [];
+                    this.clusterGain = null;
+                    this.envelopeGain = null;
+                    this.masterGain = null;
+                    this.filterNode = null;
+                    this.compressor = null;
+                    this.volumeGain = null;
                     this.analyser = null;
-                    /** @type {boolean} */
                     this.isPlaying = false;
-                    /** @type {number} */
                     this.currentClusterSize = 0;
-                    /** @type {string} */
                     this.currentWaveform = 'sine';
                 }
 
-                /**
-                 * Initialize AudioContext (must be called from user gesture)
-                 */
                 async init() {
                     if (this.ctx) {
                         if (this.ctx.state === 'suspended') await this.ctx.resume();
@@ -496,119 +462,122 @@
                     this.ctx = new(window.AudioContext || window.webkitAudioContext)();
                     if (this.ctx.state === 'suspended') await this.ctx.resume();
 
-                    // Build static nodes
                     this.clusterGain = this.ctx.createGain();
                     this.envelopeGain = this.ctx.createGain();
+                    this.masterGain = this.ctx.createGain();
+                    
+                    this.filterNode = this.ctx.createBiquadFilter();
+                    this.filterNode.type = 'lowpass';
+                    this.filterNode.frequency.setValueAtTime(20000, this.ctx.currentTime);
+                    this.filterNode.Q.setValueAtTime(0.1, this.ctx.currentTime);
+
+                    this.compressor = this.ctx.createDynamicsCompressor();
+                    this.compressor.threshold.setValueAtTime(-24, this.ctx.currentTime);
+                    this.compressor.knee.setValueAtTime(30, this.ctx.currentTime);
+                    this.compressor.ratio.setValueAtTime(12, this.ctx.currentTime);
+                    this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+                    this.compressor.release.setValueAtTime(0.25, this.ctx.currentTime);
+
                     this.volumeGain = this.ctx.createGain();
                     this.analyser = this.ctx.createAnalyser();
-
-                    // Analyser config
                     this.analyser.fftSize = 2048;
                     this.analyser.smoothingTimeConstant = 0.4;
 
-                    // Chain: clusterGain → envelopeGain → volumeGain → analyser → destination
                     this.clusterGain.connect(this.envelopeGain);
-                    this.envelopeGain.connect(this.volumeGain);
+                    this.envelopeGain.connect(this.masterGain);
+                    this.masterGain.connect(this.filterNode);
+                    this.filterNode.connect(this.compressor);
+                    this.compressor.connect(this.volumeGain);
                     this.volumeGain.connect(this.analyser);
                     this.analyser.connect(this.ctx.destination);
 
-                    // Default envelope gain at 1 (will be ramped)
                     this.envelopeGain.gain.setValueAtTime(1, this.ctx.currentTime);
-                    // Default volume at 1
                     this.volumeGain.gain.setValueAtTime(1, this.ctx.currentTime);
                 }
 
-                /**
-                 * Create and start a cluster of oscillators
-                 * @param {number} baseFreq
-                 * @param {number} step
-                 * @param {number} clusterSize
-                 * @param {string} waveform
-                 */
-                start(baseFreq, step, clusterSize, waveform) {
+                start(baseFreq, step, clusterSize, waveform, stereoWidth, attackTime, releaseTime) {
                     if (!this.ctx) throw new Error('AudioContext not initialized');
                     if (this.isPlaying) this.stop(true);
 
                     const now = this.ctx.currentTime;
-                    const safeGain = 1 / clusterSize; // guarantees no clipping
+                    
+                    let waveComp = 1.0;
+                    if (waveform === 'square') waveComp = 0.6;
+                    if (waveform === 'sawtooth') waveComp = 0.7;
+                    if (waveform === 'triangle') waveComp = 0.9;
 
-                    // Set cluster gain
+                    const safeGain = waveComp / Math.sqrt(clusterSize);
+
                     this.clusterGain.gain.cancelScheduledValues(now);
                     this.clusterGain.gain.setValueAtTime(safeGain, now);
 
-                    // Fade in
                     this.envelopeGain.gain.cancelScheduledValues(now);
                     this.envelopeGain.gain.setValueAtTime(0, now);
-                    this.envelopeGain.gain.linearRampToValueAtTime(1, now + 0.15);
+                    this.envelopeGain.gain.linearRampToValueAtTime(1, now + attackTime);
 
-                    // Create oscillators
                     const oscs = [];
+                    const panners = [];
+
                     for (let i = 1; i <= clusterSize; i++) {
                         const freq = baseFreq + i * step;
                         const osc = this.ctx.createOscillator();
                         osc.type = waveform;
                         osc.frequency.setValueAtTime(freq, now);
-                        osc.connect(this.clusterGain);
+
+                        const panner = this.ctx.createStereoPanner();
+                        const panAmount = (Math.random() * 2 - 1) * stereoWidth;
+                        panner.pan.setValueAtTime(panAmount, now);
+
+                        osc.connect(panner);
+                        panner.connect(this.clusterGain);
+                        
                         osc.start(now);
                         oscs.push(osc);
+                        panners.push(panner);
                     }
 
                     this.oscillators = oscs;
+                    this.panners = panners;
                     this.isPlaying = true;
                     this.currentClusterSize = clusterSize;
                     this.currentWaveform = waveform;
                 }
 
-                /**
-                 * Stop all oscillators with fade-out
-                 * @param {boolean} instant - skip fade
-                 */
                 stop(instant = false) {
                     if (!this.ctx || !this.isPlaying) return;
 
                     const now = this.ctx.currentTime;
-                    const fadeTime = instant ? 0.02 : 0.08;
+                    const fadeTime = instant ? 0.02 : (this.releaseTime || 0.08);
 
-                    // Fade out
                     this.envelopeGain.gain.cancelScheduledValues(now);
-                    this.envelopeGain.gain.setValueAtTime(this.envelopeGain.gain.value, now);
+                    if (typeof this.envelopeGain.gain.cancelAndHoldAtTime === 'function') {
+                        this.envelopeGain.gain.cancelAndHoldAtTime(now);
+                    } else {
+                        this.envelopeGain.gain.setValueAtTime(this.envelopeGain.gain.value, now);
+                    }
                     this.envelopeGain.gain.linearRampToValueAtTime(0, now + fadeTime);
 
                     const stopTime = now + fadeTime + 0.01;
 
-                    // Schedule oscillator stops
                     for (const osc of this.oscillators) {
                         osc.stop(stopTime);
-                        // Disconnect after stop
-                        osc.onended = () => {
-                            try { osc.disconnect(); } catch (e) { /* already disconnected */ }
-                        };
+                        osc.onended = () => { try { osc.disconnect(); } catch (e) {} };
                     }
 
-                    // Clean up after all have stopped
                     const cleanupDelay = (fadeTime + 0.05) * 1000;
-                    setTimeout(() => {
-                        this._cleanupOscillators();
-                    }, cleanupDelay);
+                    setTimeout(() => this._cleanupNodes(), cleanupDelay);
 
                     this.isPlaying = false;
                     this.currentClusterSize = 0;
                 }
 
-                /**
-                 * Internal: remove references to stopped oscillators
-                 */
-                _cleanupOscillators() {
-                    for (const osc of this.oscillators) {
-                        try { osc.disconnect(); } catch (e) { /* ok */ }
-                    }
+                _cleanupNodes() {
+                    for (const osc of this.oscillators) { try { osc.disconnect(); } catch (e) {} }
+                    for (const pan of this.panners) { try { pan.disconnect(); } catch (e) {} }
                     this.oscillators = [];
+                    this.panners = [];
                 }
 
-                /**
-                 * Set user volume (0–2 range, where 1 = unity)
-                 * @param {number} normalizedValue - 0 to 2
-                 */
                 setVolume(normalizedValue) {
                     if (!this.volumeGain || !this.ctx) return;
                     const now = this.ctx.currentTime;
@@ -616,47 +585,45 @@
                     this.volumeGain.gain.setValueAtTime(normalizedValue, now);
                 }
 
-                /**
-                 * Get analyser node for visualization
-                 * @returns {AnalyserNode|null}
-                 */
-                getAnalyser() {
-                    return this.analyser;
+                setFilterCutoff(freq) {
+                    if (!this.filterNode || !this.ctx) return;
+                    const now = this.ctx.currentTime;
+                    this.filterNode.frequency.cancelScheduledValues(now);
+                    this.filterNode.frequency.exponentialRampToValueAtTime(freq, now + 0.05);
                 }
 
-                /**
-                 * Get current AudioContext sample rate
-                 * @returns {number}
-                 */
-                getSampleRate() {
-                    return this.ctx ? this.ctx.sampleRate : 44100;
+                setFilterQ(q) {
+                    if (!this.filterNode || !this.ctx) return;
+                    const now = this.ctx.currentTime;
+                    this.filterNode.Q.cancelScheduledValues(now);
+                    this.filterNode.Q.linearRampToValueAtTime(q, now + 0.05);
                 }
 
-                /**
-                 * Destroy engine completely
-                 */
+                setEnvelopeTimes(attack, release) {
+                    this.attackTime = attack;
+                    this.releaseTime = release;
+                }
+
+                getAnalyser() { return this.analyser; }
+                getSampleRate() { return this.ctx ? this.ctx.sampleRate : 44100; }
+
                 destroy() {
                     this.stop(true);
-                    if (this.ctx) {
-                        this.ctx.close().catch(() => {});
-                        this.ctx = null;
-                    }
+                    if (this.ctx) { this.ctx.close().catch(() => {}); this.ctx = null; }
                     this.oscillators = [];
+                    this.panners = [];
                     this.clusterGain = null;
                     this.envelopeGain = null;
+                    this.masterGain = null;
+                    this.filterNode = null;
+                    this.compressor = null;
                     this.volumeGain = null;
                     this.analyser = null;
                     this.isPlaying = false;
                 }
             }
 
-            // ─────────────────────────────────────
-            // Visualizer – canvas waveform renderer
-            // ─────────────────────────────────────
             class Visualizer {
-                /**
-                 * @param {HTMLCanvasElement} canvas
-                 */
                 constructor(canvas) {
                     this.canvas = canvas;
                     this.ctx2d = canvas.getContext('2d');
@@ -689,10 +656,6 @@
                     resize();
                 }
 
-                /**
-                 * Set analyser node and start animation
-                 * @param {AnalyserNode} analyser
-                 */
                 start(analyser) {
                     this.analyser = analyser;
                     this.dataArray = new Uint8Array(analyser.fftSize);
@@ -700,15 +663,9 @@
                     this._animate();
                 }
 
-                /**
-                 * Stop animation
-                 */
                 stop() {
                     this.isRunning = false;
-                    if (this.animFrameId) {
-                        cancelAnimationFrame(this.animFrameId);
-                        this.animFrameId = null;
-                    }
+                    if (this.animFrameId) { cancelAnimationFrame(this.animFrameId); this.animFrameId = null; }
                     this._clearCanvas();
                 }
 
@@ -726,10 +683,8 @@
 
                     this.analyser.getByteTimeDomainData(this.dataArray);
 
-                    // Clear
                     ctx.clearRect(0, 0, w, h);
 
-                    // Background subtle grid
                     ctx.strokeStyle = '#ffffff08';
                     ctx.lineWidth = 0.5;
                     const midY = h / 2;
@@ -737,14 +692,7 @@
                     ctx.moveTo(0, midY);
                     ctx.lineTo(w, midY);
                     ctx.stroke();
-                    for (let x = 0; x < w; x += w / 8) {
-                        ctx.beginPath();
-                        ctx.moveTo(x, 0);
-                        ctx.lineTo(x, h);
-                        ctx.stroke();
-                    }
 
-                    // Draw waveform
                     const data = this.dataArray;
                     const len = data.length;
                     ctx.beginPath();
@@ -763,20 +711,6 @@
                     }
                     ctx.stroke();
                     ctx.shadowBlur = 0;
-
-                    // Subtle glow line on top
-                    ctx.beginPath();
-                    ctx.strokeStyle = '#a0c8ff';
-                    ctx.lineWidth = 0.6;
-                    ctx.globalAlpha = 0.5;
-                    for (let i = 0; i < len; i++) {
-                        const x = i * xStep;
-                        const y = (data[i] / 255) * h;
-                        if (i === 0) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
-                    }
-                    ctx.stroke();
-                    ctx.globalAlpha = 1;
                 }
 
                 _clearCanvas() {
@@ -784,7 +718,6 @@
                     const w = this.canvas.width / (window.devicePixelRatio || 1);
                     const h = this.canvas.height / (window.devicePixelRatio || 1);
                     ctx.clearRect(0, 0, w, h);
-                    // Draw subtle center line
                     ctx.strokeStyle = '#ffffff06';
                     ctx.lineWidth = 0.5;
                     ctx.beginPath();
@@ -795,22 +728,15 @@
 
                 destroy() {
                     this.stop();
-                    if (this.resizeObserver) {
-                        this.resizeObserver.disconnect();
-                        this.resizeObserver = null;
-                    }
+                    if (this.resizeObserver) { this.resizeObserver.disconnect(); this.resizeObserver = null; }
                 }
             }
 
-            // ─────────────────────────────────────
-            // App – ties UI + AudioEngine + Visualizer
-            // ─────────────────────────────────────
             class App {
                 constructor() {
                     this.engine = new AudioEngine();
                     this.visualizer = null;
 
-                    // UI elements
                     this.btnPlay = document.getElementById('btnPlay');
                     this.statusDot = document.getElementById('statusDot');
                     this.statusTag = document.getElementById('statusTag');
@@ -824,24 +750,44 @@
                     this.waveformButtonsContainer = document.getElementById('waveformButtons');
                     this.vizCanvas = document.getElementById('vizCanvas');
 
-                    // State
+                    this.stepSizeSlider = document.getElementById('stepSize');
+                    this.stepValDisplay = document.getElementById('stepVal');
+                    this.filterCutoffSlider = document.getElementById('filterCutoff');
+                    this.cutoffValDisplay = document.getElementById('cutoffVal');
+                    this.filterQSlider = document.getElementById('filterQ');
+                    this.qValDisplay = document.getElementById('qVal');
+                    this.stereoSpreadSlider = document.getElementById('stereoSpread');
+                    this.spreadValDisplay = document.getElementById('spreadVal');
+                    this.attackTimeSlider = document.getElementById('attackTime');
+                    this.attackValDisplay = document.getElementById('attackVal');
+                    this.releaseTimeSlider = document.getElementById('releaseTime');
+                    this.releaseValDisplay = document.getElementById('releaseVal');
+
                     this.clusterSize = 10;
                     this.waveform = 'sine';
                     this.baseFreq = 250;
-                    this.step = 0.00001;
-                    this.volume = 1.0; // 0–2 normalized
+                    this.step = 0.01;
+                    this.volume = 1.0;
+                    this.stereoWidth = 0.5;
+                    this.attackTime = 0.15;
+                    this.releaseTime = 0.50;
+                    this.filterCutoff = 20000;
+                    this.filterQ = 0.1;
 
-                    // Build cluster size buttons
                     this.clusterSizes = [10, 50, 100, 150, 200, 250, 500, 1000];
                     this._buildClusterButtons();
                     this._bindEvents();
                     this._updateInfo();
                     this._updateVolumeDisplay();
 
-                    // Initialize visualizer
-                    this.visualizer = new Visualizer(this.vizCanvas);
+                    this._updateStepSize(parseInt(this.stepSizeSlider.value));
+                    this._updateFilterCutoff(parseInt(this.filterCutoffSlider.value));
+                    this._updateFilterQ(parseInt(this.filterQSlider.value));
+                    this._updateStereoSpread(parseInt(this.stereoSpreadSlider.value));
+                    this._updateAttackTime(parseInt(this.attackTimeSlider.value));
+                    this._updateReleaseTime(parseInt(this.releaseTimeSlider.value));
 
-                    // Try to init audio context early (will be resumed on play if needed)
+                    this.visualizer = new Visualizer(this.vizCanvas);
                     this._initAudioContextOnInteraction();
                 }
 
@@ -860,19 +806,14 @@
                 }
 
                 _bindEvents() {
-                    // Play / Stop
                     this.btnPlay.addEventListener('click', () => this._togglePlay());
 
-                    // Base frequency
                     this.baseFreqInput.addEventListener('input', () => {
                         const val = parseFloat(this.baseFreqInput.value);
                         if (!isNaN(val) && val >= 20 && val <= 8000) {
                             this.baseFreq = val;
                             this._updateInfo();
-                            // If playing, restart with new frequency
-                            if (this.engine.isPlaying) {
-                                this._restartCluster();
-                            }
+                            if (this.engine.isPlaying) this._restartCluster();
                         }
                     });
                     this.baseFreqInput.addEventListener('change', () => {
@@ -885,14 +826,12 @@
                         if (this.engine.isPlaying) this._restartCluster();
                     });
 
-                    // Volume
                     this.volumeSlider.addEventListener('input', () => {
                         this.volume = parseInt(this.volumeSlider.value) / 100;
                         this._updateVolumeDisplay();
                         this.engine.setVolume(this.volume);
                     });
 
-                    // Waveform buttons
                     this.waveformButtonsContainer.querySelectorAll('.wave-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
                             const wave = btn.dataset.wave;
@@ -903,7 +842,13 @@
                         });
                     });
 
-                    // Keyboard shortcut: Space to toggle play
+                    this.stepSizeSlider.addEventListener('input', (e) => this._updateStepSize(parseInt(e.target.value)));
+                    this.filterCutoffSlider.addEventListener('input', (e) => this._updateFilterCutoff(parseInt(e.target.value)));
+                    this.filterQSlider.addEventListener('input', (e) => this._updateFilterQ(parseInt(e.target.value)));
+                    this.stereoSpreadSlider.addEventListener('input', (e) => this._updateStereoSpread(parseInt(e.target.value)));
+                    this.attackTimeSlider.addEventListener('input', (e) => this._updateAttackTime(parseInt(e.target.value)));
+                    this.releaseTimeSlider.addEventListener('input', (e) => this._updateReleaseTime(parseInt(e.target.value)));
+
                     document.addEventListener('keydown', (e) => {
                         if (e.code === 'Space' && e.target === document.body) {
                             e.preventDefault();
@@ -911,10 +856,7 @@
                         }
                     });
 
-                    // Handle page unload
-                    window.addEventListener('beforeunload', () => {
-                        this.engine.destroy();
-                    });
+                    window.addEventListener('beforeunload', () => this.engine.destroy());
                 }
 
                 _initAudioContextOnInteraction() {
@@ -930,20 +872,12 @@
                         }
                     };
 
-                    // Try immediately
                     initFn();
 
-                    // Also listen for first user interaction to resume if needed
                     const resumeOnInteraction = async () => {
-                        if (this.engine.ctx && this.engine.ctx.state === 'suspended') {
-                            await this.engine.ctx.resume();
-                        }
-                        if (!this.engine.ctx) {
-                            await initFn();
-                        }
-                        if (this.engine.ctx && this.engine.ctx.state === 'running') {
-                            this.btnPlay.disabled = false;
-                        }
+                        if (this.engine.ctx && this.engine.ctx.state === 'suspended') await this.engine.ctx.resume();
+                        if (!this.engine.ctx) await initFn();
+                        if (this.engine.ctx && this.engine.ctx.state === 'running') this.btnPlay.disabled = false;
                     };
 
                     ['click', 'touchstart', 'keydown'].forEach(evt => {
@@ -951,41 +885,71 @@
                     });
                 }
 
+                _updateStepSize(val) {
+                    const min = 0.001, max = 50;
+                    this.step = min * Math.pow(max / min, val / 100);
+                    this.stepValDisplay.textContent = this.step < 1 ? this.step.toFixed(3) + ' Hz' : this.step.toFixed(2) + ' Hz';
+                    this._updateInfo();
+                    if (this.engine.isPlaying) this._restartCluster();
+                }
+
+                _updateFilterCutoff(val) {
+                    const min = 20, max = 20000;
+                    this.filterCutoff = min * Math.pow(max / min, val / 100);
+                    this.cutoffValDisplay.textContent = this.filterCutoff >= 1000 ? (this.filterCutoff / 1000).toFixed(1) + ' kHz' : Math.round(this.filterCutoff) + ' Hz';
+                    this.engine.setFilterCutoff(this.filterCutoff);
+                }
+
+                _updateFilterQ(val) {
+                    const min = 0.1, max = 20;
+                    this.filterQ = min + (max - min) * (val / 100);
+                    this.qValDisplay.textContent = this.filterQ.toFixed(1);
+                    this.engine.setFilterQ(this.filterQ);
+                }
+
+                _updateStereoSpread(val) {
+                    this.stereoWidth = val / 100;
+                    this.spreadValDisplay.textContent = val + '%';
+                    if (this.engine.isPlaying) this._restartCluster();
+                }
+
+                _updateAttackTime(val) {
+                    const min = 0.005, max = 5.0;
+                    this.attackTime = min * Math.pow(max / min, val / 100);
+                    this.attackValDisplay.textContent = this.attackTime.toFixed(2) + ' s';
+                    this.engine.setEnvelopeTimes(this.attackTime, this.releaseTime);
+                }
+
+                _updateReleaseTime(val) {
+                    const min = 0.01, max = 5.0;
+                    this.releaseTime = min * Math.pow(max / min, val / 100);
+                    this.releaseValDisplay.textContent = this.releaseTime.toFixed(2) + ' s';
+                    this.engine.setEnvelopeTimes(this.attackTime, this.releaseTime);
+                }
+
                 async _togglePlay() {
-                    if (this.engine.isPlaying) {
-                        this._stopCluster();
-                    } else {
-                        await this._startCluster();
-                    }
+                    if (this.engine.isPlaying) this._stopCluster();
+                    else await this._startCluster();
                 }
 
                 async _startCluster() {
-                    // Ensure audio context is ready
-                    if (!this.engine.ctx || this.engine.ctx.state === 'closed') {
-                        await this.engine.init();
-                    }
-                    if (this.engine.ctx.state === 'suspended') {
-                        await this.engine.ctx.resume();
-                    }
+                    if (!this.engine.ctx || this.engine.ctx.state === 'closed') await this.engine.init();
+                    if (this.engine.ctx.state === 'suspended') await this.engine.ctx.resume();
                     if (!this.engine.ctx || this.engine.ctx.state !== 'running') {
-                        alert('Unable to start audio. Please tap/click the page first to enable audio.');
+                        alert('Unable to start audio. Please tap/click the page first.');
                         return;
                     }
 
                     try {
-                        this.engine.start(this.baseFreq, this.step, this.clusterSize, this.waveform);
+                        this.engine.start(this.baseFreq, this.step, this.clusterSize, this.waveform, this.stereoWidth, this.attackTime, this.releaseTime);
                     } catch (err) {
                         console.error('Failed to start cluster:', err);
                         return;
                     }
 
-                    // Start visualizer
                     const analyser = this.engine.getAnalyser();
-                    if (analyser) {
-                        this.visualizer.start(analyser);
-                    }
+                    if (analyser) this.visualizer.start(analyser);
 
-                    // Update UI
                     this._updatePlayStateUI(true);
                 }
 
@@ -998,17 +962,13 @@
                 _restartCluster() {
                     if (!this.engine.isPlaying) return;
                     try {
-                        this.engine.stop(true); // instant stop
-                        // Small delay to let nodes clean up
+                        this.engine.stop(true);
                         setTimeout(() => {
                             if (!this.engine.ctx || this.engine.ctx.state === 'closed') return;
                             try {
-                                this.engine.start(this.baseFreq, this.step, this.clusterSize, this
-                                    .waveform);
+                                this.engine.start(this.baseFreq, this.step, this.clusterSize, this.waveform, this.stereoWidth, this.attackTime, this.releaseTime);
                                 const analyser = this.engine.getAnalyser();
-                                if (analyser && !this.visualizer.isRunning) {
-                                    this.visualizer.start(analyser);
-                                }
+                                if (analyser && !this.visualizer.isRunning) this.visualizer.start(analyser);
                                 this._updatePlayStateUI(true);
                             } catch (err) {
                                 console.error('Failed to restart cluster:', err);
@@ -1028,9 +988,7 @@
                     this.clusterSize = size;
                     this._updateClusterButtons();
                     this._updateInfo();
-                    if (this.engine.isPlaying) {
-                        this._restartCluster();
-                    }
+                    if (this.engine.isPlaying) this._restartCluster();
                 }
 
                 _updatePlayStateUI(playing) {
@@ -1051,8 +1009,7 @@
 
                 _updateClusterButtons() {
                     this.clusterButtonsContainer.querySelectorAll('.cluster-btn').forEach(btn => {
-                        const size = parseInt(btn.dataset.size);
-                        btn.classList.toggle('selected', size === this.clusterSize);
+                        btn.classList.toggle('selected', parseInt(btn.dataset.size) === this.clusterSize);
                     });
                 }
 
@@ -1063,8 +1020,7 @@
                 }
 
                 _updateVolumeDisplay() {
-                    const pct = Math.round(this.volume * 100);
-                    this.volPercent.textContent = pct + '%';
+                    this.volPercent.textContent = Math.round(this.volume * 100) + '%';
                 }
 
                 _updateInfo() {
@@ -1072,20 +1028,14 @@
                     const highest = this.baseFreq + this.clusterSize * this.step;
                     const spread = (this.clusterSize - 1) * this.step;
 
-                    this.infoRange.textContent =
-                        `${lowest.toFixed(5)} Hz → ${highest.toFixed(5)} Hz`;
-                    this.infoSpread.textContent = `${spread.toFixed(6)} Hz`;
+                    this.infoRange.textContent = `${lowest.toFixed(3)} Hz → ${highest.toFixed(3)} Hz`;
+                    this.infoSpread.textContent = spread < 1 ? `${spread.toFixed(4)} Hz` : `${spread.toFixed(2)} Hz`;
                     this.infoCount.textContent = `${this.clusterSize} tones`;
                 }
             }
 
-            // ─────────────────────────────────────
-            // Bootstrap
-            // ─────────────────────────────────────
-            document.addEventListener('DOMContentLoaded', () => {
-                new App();
-            });
+            document.addEventListener('DOMContentLoaded', () => new App());
         })();
     </script>
 </body>
-  </html>
+    </html>
