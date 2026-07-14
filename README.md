@@ -1,156 +1,137 @@
-# AuraMicroOffset
+# 🎛️ Micro-Cluster Synth
 
-**An ultra‑precise, browser‑based microtonal cluster synthesizer built with the Web Audio API.**  
-Create dense, slowly evolving sonic textures from hundreds of oscillators spaced only **0.00001 Hz** apart.
+**A high-density, microtonal web synthesizer for generating massive sonic textures and frequency clusters.**
 
-[![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)](#)
-[![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)](#)
-[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](#)
-[![Web Audio API](https://img.shields.io/badge/Web%20Audio-API-blueviolet)](#)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-![Micro-Cluster Synth Screenshot](screenshot.png)  
-*(Replace with an actual screenshot or GIF of the interface in action)*
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Vanilla JS](https://img.shields.io/badge/stack-Vanilla%20JS-yellow.svg)
+![Web Audio API](https://img.shields.io/badge/audio-Web%20Audio%20API-green.svg)
+![No Dependencies](https://img.shields.io/badge/dependencies-None-lightgrey.svg)
 
 ---
 
-## ✨ Overview
+## 📖 Overview
 
-**Micro-Cluster Synth** generates dense, micro‑tonal tone clusters directly in the browser. By stacking up to **1000 sine, triangle, square or sawtooth oscillators** with a frequency increment of just `0.00001 Hz`, it produces rich, slowly shifting interference patterns and beating effects – perfect for drone music, sound design experiments, and exploring the psychoacoustic boundaries of human pitch perception.
+The **Micro-Cluster Synth** is a specialized browser-based instrument designed for **cluster synthesis**—a technique pioneered by composers like Henry Cowell and Iannis Xenakis, where dense clouds of microtonal frequencies are played simultaneously. 
 
-The entire application is a **single, self‑contained HTML file** – no dependencies, no build process, no server required. It runs instantly on any modern browser.
+Unlike traditional polyphonic synthesizers, this engine is built to handle hundreds or even thousands of simultaneous oscillators. By utilizing advanced gain-staging techniques (RMS normalization) and dynamic spatialization, it transforms microscopic frequency shifts into massive, evolving walls of sound without clipping the browser's audio engine.
 
----
-
-## 🚀 Live Demo
-
-👉 **[Try it online](https://your-username.github.io/micro-cluster-synth/)**  
-*(Deploy the `index.html` to GitHub Pages or any static host to make it available.)*
+> **Zero dependencies.** Built entirely with vanilla HTML, CSS, and the Web Audio API.
 
 ---
 
-## 🎧 Features
+## ✨ Key Features
 
-- **Extreme frequency precision**  
-  Oscillators are spaced by `0.00001 Hz` – far below the just‑noticeable‑difference of human pitch, creating organic, evolving beating textures.
+### 🎛️ Synthesis Engine
+*   **Massive Polyphony:** Generate clusters of up to 1,000+ simultaneous oscillators.
+*   **Dynamic Step Size:** Logarithmic control over frequency detuning (0.001 Hz to 50 Hz), allowing everything from imperceptible phasing to wide, dissonant clusters.
+*   **Waveform Selection:** Sine, Triangle, Square, and Sawtooth waves with automatic gain compensation to maintain consistent perceived volume.
 
-- **Configurable cluster sizes**  
-  Choose from `10, 50, 100, 150, 200, 250, 500, 1000` concurrent oscillators.
+### 🎨 Tone Shaping & Spatialization
+*   **Low-Pass Filtering:** Dedicated Cutoff (20Hz – 20kHz) and Resonance (Q) controls via a `BiquadFilterNode`.
+*   **Stereo Spatialization:** Randomized stereo panning per-oscillator to create wide, immersive soundscapes from dense mono clusters.
+*   **Amplitude Envelopes:** Fully adjustable Attack and Release times for everything from percussive plucks to infinite drone swells.
 
-- **Base frequency control**  
-  Set the starting frequency anywhere between 20 Hz and 8 kHz.
-
-- **Four classic waveforms**  
-  Switch between **Sine, Triangle, Square and Sawtooth** waves on the fly.
-
-- **Automatic amplitude normalisation**  
-  The master gain is automatically reduced to `1 / clusterSize`, preventing clipping even with hundreds of oscillators. A volume slider (0–200%) gives you additional control.
-
-- **Real‑time waveform visualiser**  
-  See the combined output signal on a responsive canvas, making the complex interference patterns visible.
-
-- **Efficient resource management**  
-  All oscillators are properly stopped and disconnected when playback ends, minimising CPU and memory usage. The code uses modular, vanilla JavaScript – no frameworks, no heavy libraries.
-
-- **Responsive & accessible**  
-  Optimised for desktop and mobile browsers, with keyboard shortcut (spacebar) to toggle playback.
+### ⚡ Audio Processing
+*   **RMS Normalization:** Intelligent gain scaling (`1 / √N`) prevents clipping when scaling from 10 to 1,000 voices.
+*   **Glue Compression:** A built-in `DynamicsCompressor` node acts as a master bus compressor, tightening the low-end and managing transient peaks.
+*   **Real-Time Visualizer:** High-performance Canvas API rendering of the time-domain waveform.
 
 ---
 
-## 🧠 How It Works
+## 🏗️ Audio Architecture
 
-Each oscillator `i` (from 1 to N) is tuned to:
+The Web Audio API routing graph is designed to handle extreme voice counts while maintaining headroom and stereo width.
 
+```mermaid
+graph TD
+    OSC[Oscillators 1..N] --> PAN[Stereo Panners]
+    PAN --> CG[Cluster Gain<br/><i>RMS Normalized</i>]
+    CG --> ENV[Envelope Gain<br/><i>Attack / Release</i>]
+    ENV --> MG[Master Gain]
+    MG --> LPF[Low-Pass Filter<br/><i>Cutoff & Resonance</i>]
+    LPF --> COMP[Dynamics Compressor]
+    COMP --> VOL[User Volume]
+    VOL --> ANA[Analyser Node]
+    ANA --> OUT((Audio Destination))
+    
+    classDef node fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#fff;
+    class OSC,PAN,CG,ENV,MG,LPF,COMP,VOL,ANA,OUT node;
 ```
 
-frequency_i = baseFrequency + i × step
+---
 
-```
+## 🧠 Technical Deep Dive
 
-where `step = 0.00001 Hz`.  
-For example, with `base = 250 Hz` and `N = 100`, the frequencies range from `250.00001 Hz` to `250.00100 Hz`. The resulting sound is a dense cluster of closely‑spaced tones that interfere continuously, causing the amplitude to rise and fall over seconds – a phenomenon known as **beating**.
+### 1. Logarithmic Parameter Scaling
+Human perception of frequency and time is logarithmic, not linear. All range sliders in the UI (Step Size, Filter Cutoff, Attack/Release) map linear slider values (0–100) to exponential audio parameters using the formula:
+`value = min * (max / min)^(slider / 100)`
 
-The cluster’s overall loudness is normalised to prevent digital distortion, and an envelope fades the sound in/out smoothly to avoid clicks.
+### 2. RMS Gain Normalization
+Standard linear normalization (`1 / N`) makes large clusters inaudibly quiet. The Micro-Cluster Synth uses **Root-Mean-Square (RMS) normalization** (`1 / √N`). This assumes oscillators are partially uncorrelated in phase, keeping the perceived loudness consistent regardless of cluster size.
 
-A built‑in `AnalyserNode` feeds the waveform visualiser, giving you real‑time insight into the complex signal.
+### 3. Waveform Compensation
+Square and Sawtooth waves contain more harmonic energy and higher RMS levels than Sine waves. The engine applies automatic attenuation (`0.6` for Square, `0.7` for Sawtooth) at the cluster gain stage to prevent harsh volume jumps when switching waveforms.
 
 ---
 
-## 📦 Getting Started
+## 🚀 Getting Started
 
-You can run the synth in three simple steps:
+Because this project uses vanilla JavaScript and the Web Audio API, there is no build step required.
 
-1. **Download** the repository or copy the raw `index.html` file.
-2. **Open** `index.html` in any modern browser (Chrome, Firefox, Edge, Safari).
-3. **Click** the “Play Cluster” button (or press `Space`) and start exploring!
+### Local Development
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/micro-cluster-synth.git
+   cd micro-cluster-synth
+   ```
+2. Start a local server (required for some browser security policies regarding Web Audio):
+   ```bash
+   # Using Python 3
+   python -m http.server 8000
+   
+   # Or using Node.js
+   npx serve
+   ```
+3. Open your browser and navigate to `http://localhost:8000`.
 
-> ℹ️ **Note on audio autoplay:**  
-> Modern browsers require a user interaction before playing audio. The first click/tap on the page will unlock the AudioContext. If the button is disabled, just tap anywhere and it will activate.
-
----
-
-## 🎮 Usage
-
-| Control          | Description                                                                 |
-|------------------|-----------------------------------------------------------------------------|
-| **Base Frequency** | Enter the starting frequency (20–8000 Hz).                                    |
-| **Cluster Size**   | Select how many oscillators to stack. Larger clusters create denser textures. |
-| **Waveform**       | Choose the oscillator shape: Sine, Triangle, Square or Sawtooth.             |
-| **Volume**         | Adjust the master output (0–200%).                                            |
-| **Play / Stop**    | Start or stop the cluster. Press `Space` for quick toggle.                    |
-
-The **info bar** shows the exact frequency range, total spread, and number of tones in the current cluster.
+> **Note:** Browsers require a user interaction (click/tap) to unlock the `AudioContext`. The UI handles this automatically on the first interaction.
 
 ---
 
-## 🛠️ Customisation
+## ⌨️ Keyboard Shortcuts
 
-The code is modular and well‑commented. You can easily tweak:
-
-- **Step size** – change the `step` constant inside the `App` class (line ~520).  
-- **Available cluster sizes** – edit the `clusterSizes` array.  
-- **Waveform list** – add or remove waveform options.  
-- **Visual style** – the CSS uses custom properties (`:root`) for easy colour scheme changes.
-
-No build tools are required – just edit the HTML file directly.
+| Key | Action |
+| :--- | :--- |
+| <kbd>Space</kbd> | Toggle Play / Stop (when UI is not focused) |
 
 ---
 
-## ⚡ Performance Notes
+## 🗺️ Roadmap
 
-- **Up to 1000 oscillators** run smoothly on modern hardware, thanks to Web Audio’s native oscillator implementation.
-- The **gain normalisation** (`1/N`) ensures the combined signal never exceeds the clipping threshold.
-- When playback stops, all oscillators are **immediately disconnected** and their references released, keeping memory usage minimal.
-- The visualiser runs at 60 fps using `requestAnimationFrame` and scales with the container, but it can be disabled if you need to save battery on mobile.
-
-For extreme cluster sizes (>500) on low‑end devices, you may notice a slight load – the app remains fully functional but we recommend starting with smaller clusters and adjusting.
+Future iterations of the Micro-Cluster Synth may include:
+- [ ] **LFO Modulators:** Routing LFOs to Filter Cutoff, Stereo Spread, or Step Size.
+- [ ] **Preset Management:** LocalStorage-based saving/loading of cluster configurations.
+- [ ] **MIDI Support:** Web MIDI API integration for hardware controller mapping.
+- [ ] **Spectral Visualizer:** FFT-based frequency domain visualization alongside the time-domain oscilloscope.
+- [ ] **Delay/Reverb Bus:** Auxiliary sends for spatial effects.
 
 ---
 
-## 🧰 Technology Stack
+## 🌐 Browser Compatibility
 
-- **HTML5** – semantic, accessible markup.
-- **CSS3** – custom design system with CSS variables, responsive layout.
-- **Vanilla JavaScript (ES6+)** – modular, object‑oriented code.
-- **Web Audio API** – `OscillatorNode`, `GainNode`, `AnalyserNode`.
-- **Canvas API** – real‑time waveform visualisation.
-
-Zero external dependencies, no frameworks, no npm.
+The Web Audio API is fully supported in all modern browsers:
+*   ✅ Chrome / Edge (Chromium) v80+
+*   ✅ Firefox v75+
+*   ✅ Safari v14+ (Note: Safari requires explicit user gesture to start `AudioContext`, which is handled by the app's initialization logic).
 
 ---
 
 ## 📄 License
 
-This project is open‑source and available under the **MIT License**.  
-See the [LICENSE](LICENSE) file for details.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## 🙏 Acknowledgements
-
-Inspired by the pioneering work in microtonal and spectral music, and by the limitless possibilities of the Web Audio API.
-
----
-
-**Enjoy the deep drones and happy sound designing!** 🎵  
-Feel free to open issues or pull requests if you have ideas for improvements.
+<p align="center">
+  <i>Built for sound designers, ambient musicians, and fans of extreme polyphony.</i>
+</p>
