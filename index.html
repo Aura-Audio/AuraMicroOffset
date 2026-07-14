@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micro-Frequency Cluster Synth</title>
+    <style>
+        :root {
+            --bg: #0d0f14;
+            --surface: #161922;
+            --surface2: #1c1f2b;
+            --border: #2a2d3a;
+            --text: #d0d3e0;
+            --text2: #8b8fa3;
+            --accent: #5b9cf5;
+            --accent-glow: #5b9cf560;
+            --play: #3dd68c;
+            --play-glow: #3dd68c50;
+            --stop: #f54e5e;
+            --danger: #f54e5e;
+            --warning: #f0a050;
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Consolas', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 780px;
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 24px 28px 28px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: #e8eaf0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header h1 .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--play);
+            display: inline-block;
+            transition: background var(--transition), box-shadow var(--transition);
+            box-shadow: 0 0 0px var(--play-glow);
+        }
+        .header h1 .dot.playing {
+            background: #3dd68c;
+            box-shadow: 0 0 14px #3dd68c80;
+            animation: pulse-dot 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                box-shadow: 0 0 8px #3dd68c60;
+            }
+            50% {
+                box-shadow: 0 0 22px #3dd68ccc;
+            }
+        }
+
+        .status-tag {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text2);
+            transition: all var(--transition);
+        }
+        .status-tag.active {
+            border-color: #3dd68c60;
+            color: #3dd68c;
+            background: #3dd68c10;
+        }
+
+        /* Canvas */
+        .viz-container {
+            position: relative;
+            width: 100%;
+            height: 160px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: #0a0b10;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .viz-container canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .viz-overlay {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            font-family: var(--mono);
+            font-size: 0.6rem;
+            color: #ffffff40;
+            pointer-events: none;
+            letter-spacing: 0.4px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 90px;
+        }
+        .control-group label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text2);
+        }
+        .control-group input[type="number"] {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 9px 12px;
+            border-radius: var(--radius-sm);
+            font-family: var(--mono);
+            font-size: 0.95rem;
+            width: 120px;
+            transition: border var(--transition);
+            outline: none;
+        }
+        .control-group input[type="number"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .control-group .step-display {
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            padding: 9px 0;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        /* Cluster size buttons */
+        .cluster-sizes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+        .cluster-btn {
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--text2);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            transition: all var(--transition);
+            font-family: var(--mono);
+            white-space: nowrap;
+        }
+        .cluster-btn:hover {
+            border-color: #6a6f80;
+            color: #d0d4e0;
+            background: #222636;
+        }
+        .cluster-btn.selected {
+            border-color: var(--accent);
+            color: #fff;
+            background: #3b6fd420;
+            box-shadow: 0 0 12px var(--accent-glow);
+            font-weight: 700;
+        }
+        .cluster-btn.large-cluster {
+            position: relative;
+        }
+        .cluster-btn.large-cluster::after {
+            content: '⚠';
+            font-size: 0.55rem;
+            margin-left: 3px;
+            opacity: 0.7;
+        }
+
+        /* Waveform type */
+        .waveform-select {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .wave-btn {
+            padding: 7px 13px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--text2);
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            transition: all var(--transition);
+        }
+        .wave-btn:hover {
+            border-color: #6a6f80;
+            color: #d0d4e0;
+        }
+        .wave-btn.selected {
+            border-color: #c084fc;
+            color: #e8d5ff;
+            background: #7c3aed18;
+            box-shadow: 0 0 10px #7c3aed30;
+        }
+
+        /* Volume */
+        .volume-group {
+            flex: 1;
+            min-width: 120px;
+        }
+        .volume-group input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+        .volume-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--accent);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .vol-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--text2);
+        }
+
+        /* Play button */
+        .play-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .btn-play {
+            padding: 14px 38px;
+            border-radius: 28px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            background: var(--play);
+            color: #0a0f0a;
+            transition: all var(--transition);
+            box-shadow: 0 6px 24px #3dd68c35;
+            font-family: var(--font);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-play:hover {
+            box-shadow: 0 8px 32px #3dd68c55;
+            transform: translateY(-1px);
+        }
+        .btn-play:active {
+            transform: scale(0.96);
+            transition: 0.08s;
+        }
+        .btn-play.playing {
+            background: var(--stop);
+            color: #fff;
+            box-shadow: 0 6px 24px #f54e5e40;
+        }
+        .btn-play.playing:hover {
+            box-shadow: 0 8px 32px #f54e5e60;
+        }
+        .btn-play:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Info bar */
+        .info-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--text2);
+            padding: 10px 14px;
+            background: var(--surface2);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            line-height: 1.6;
+        }
+        .info-bar span {
+            color: #c8cde0;
+            font-weight: 500;
+        }
+        .info-bar .highlight {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        @media (max-width: 600px) {
+            .app {
+                padding: 16px 14px 18px;
+                gap: 14px;
+                border-radius: 12px;
+            }
+            .header h1 {
+                font-size: 1.1rem;
+            }
+            .viz-container {
+                height: 110px;
+            }
+            .btn-play {
+                padding: 12px 28px;
+                font-size: 0.9rem;
+            }
+            .cluster-btn {
+                padding: 6px 10px;
+                font-size: 0.7rem;
+            }
+            .control-group input[type="number"] {
+                width: 90px;
+                font-size: 0.8rem;
+                padding: 7px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span class="dot" id="statusDot"></span>
+                Micro-Cluster Synth
+            </h1>
+            <span class="status-tag" id="statusTag">Idle</span>
+        </div>
+
+        <!-- Waveform Visualizer -->
+        <div class="viz-container" id="vizContainer">
+            <canvas id="vizCanvas"></canvas>
+            <div class="viz-overlay" id="vizLabel">time domain</div>
+        </div>
+
+        <!-- Controls Row 1: Frequency & Cluster Size -->
+        <div class="controls">
+            <div class="control-group">
+                <label for="baseFreq">Base Frequency (Hz)</label>
+                <input type="number" id="baseFreq" value="250" min="20" max="8000" step="0.1">
+            </div>
+            <div class="control-group">
+                <label>Step Size</label>
+                <div class="step-display">0.00001 Hz</div>
+            </div>
+            <div class="control-group" style="flex:2;min-width:200px;">
+                <label>Cluster Size</label>
+                <div class="cluster-sizes" id="clusterButtons">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Row 2: Waveform & Volume -->
+        <div class="controls">
+            <div class="control-group">
+                <label>Waveform</label>
+                <div class="waveform-select" id="waveformButtons">
+                    <button class="wave-btn selected" data-wave="sine">Sine</button>
+                    <button class="wave-btn" data-wave="triangle">Triangle</button>
+                    <button class="wave-btn" data-wave="square">Square</button>
+                    <button class="wave-btn" data-wave="sawtooth">Sawtooth</button>
+                </div>
+            </div>
+            <div class="control-group volume-group">
+                <label>Volume</label>
+                <input type="range" id="volumeSlider" min="0" max="200" value="100" step="1">
+                <div class="vol-label-row">
+                    <span>0%</span>
+                    <span id="volPercent">100%</span>
+                    <span>200%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Play Button -->
+        <div class="play-section">
+            <button class="btn-play" id="btnPlay" disabled>▶ Play Cluster</button>
+        </div>
+
+        <!-- Info Bar -->
+        <div class="info-bar" id="infoBar">
+            Cluster range: <span id="infoRange">—</span> &nbsp;|&nbsp;
+            Spread: <span class="highlight" id="infoSpread">—</span> &nbsp;|&nbsp;
+            Tones: <span id="infoCount">—</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ─────────────────────────────────────
+            // AudioEngine – manages all Web Audio
+            // ─────────────────────────────────────
+            class AudioEngine {
+                constructor() {
+                    /** @type {AudioContext|null} */
+                    this.ctx = null;
+                    /** @type {OscillatorNode[]} */
+                    this.oscillators = [];
+                    /** @type {GainNode|null} */
+                    this.clusterGain = null; // auto-normalization gain (1/N)
+                    /** @type {GainNode|null} */
+                    this.envelopeGain = null; // fade in/out
+                    /** @type {GainNode|null} */
+                    this.volumeGain = null; // user volume
+                    /** @type {AnalyserNode|null} */
+                    this.analyser = null;
+                    /** @type {boolean} */
+                    this.isPlaying = false;
+                    /** @type {number} */
+                    this.currentClusterSize = 0;
+                    /** @type {string} */
+                    this.currentWaveform = 'sine';
+                }
+
+                /**
+                 * Initialize AudioContext (must be called from user gesture)
+                 */
+                async init() {
+                    if (this.ctx) {
+                        if (this.ctx.state === 'suspended') await this.ctx.resume();
+                        return;
+                    }
+                    this.ctx = new(window.AudioContext || window.webkitAudioContext)();
+                    if (this.ctx.state === 'suspended') await this.ctx.resume();
+
+                    // Build static nodes
+                    this.clusterGain = this.ctx.createGain();
+                    this.envelopeGain = this.ctx.createGain();
+                    this.volumeGain = this.ctx.createGain();
+                    this.analyser = this.ctx.createAnalyser();
+
+                    // Analyser config
+                    this.analyser.fftSize = 2048;
+                    this.analyser.smoothingTimeConstant = 0.4;
+
+                    // Chain: clusterGain → envelopeGain → volumeGain → analyser → destination
+                    this.clusterGain.connect(this.envelopeGain);
+                    this.envelopeGain.connect(this.volumeGain);
+                    this.volumeGain.connect(this.analyser);
+                    this.analyser.connect(this.ctx.destination);
+
+                    // Default envelope gain at 1 (will be ramped)
+                    this.envelopeGain.gain.setValueAtTime(1, this.ctx.currentTime);
+                    // Default volume at 1
+                    this.volumeGain.gain.setValueAtTime(1, this.ctx.currentTime);
+                }
+
+                /**
+                 * Create and start a cluster of oscillators
+                 * @param {number} baseFreq
+                 * @param {number} step
+                 * @param {number} clusterSize
+                 * @param {string} waveform
+                 */
+                start(baseFreq, step, clusterSize, waveform) {
+                    if (!this.ctx) throw new Error('AudioContext not initialized');
+                    if (this.isPlaying) this.stop(true);
+
+                    const now = this.ctx.currentTime;
+                    const safeGain = 1 / clusterSize; // guarantees no clipping
+
+                    // Set cluster gain
+                    this.clusterGain.gain.cancelScheduledValues(now);
+                    this.clusterGain.gain.setValueAtTime(safeGain, now);
+
+                    // Fade in
+                    this.envelopeGain.gain.cancelScheduledValues(now);
+                    this.envelopeGain.gain.setValueAtTime(0, now);
+                    this.envelopeGain.gain.linearRampToValueAtTime(1, now + 0.15);
+
+                    // Create oscillators
+                    const oscs = [];
+                    for (let i = 1; i <= clusterSize; i++) {
+                        const freq = baseFreq + i * step;
+                        const osc = this.ctx.createOscillator();
+                        osc.type = waveform;
+                        osc.frequency.setValueAtTime(freq, now);
+                        osc.connect(this.clusterGain);
+                        osc.start(now);
+                        oscs.push(osc);
+                    }
+
+                    this.oscillators = oscs;
+                    this.isPlaying = true;
+                    this.currentClusterSize = clusterSize;
+                    this.currentWaveform = waveform;
+                }
+
+                /**
+                 * Stop all oscillators with fade-out
+                 * @param {boolean} instant - skip fade
+                 */
+                stop(instant = false) {
+                    if (!this.ctx || !this.isPlaying) return;
+
+                    const now = this.ctx.currentTime;
+                    const fadeTime = instant ? 0.02 : 0.08;
+
+                    // Fade out
+                    this.envelopeGain.gain.cancelScheduledValues(now);
+                    this.envelopeGain.gain.setValueAtTime(this.envelopeGain.gain.value, now);
+                    this.envelopeGain.gain.linearRampToValueAtTime(0, now + fadeTime);
+
+                    const stopTime = now + fadeTime + 0.01;
+
+                    // Schedule oscillator stops
+                    for (const osc of this.oscillators) {
+                        osc.stop(stopTime);
+                        // Disconnect after stop
+                        osc.onended = () => {
+                            try { osc.disconnect(); } catch (e) { /* already disconnected */ }
+                        };
+                    }
+
+                    // Clean up after all have stopped
+                    const cleanupDelay = (fadeTime + 0.05) * 1000;
+                    setTimeout(() => {
+                        this._cleanupOscillators();
+                    }, cleanupDelay);
+
+                    this.isPlaying = false;
+                    this.currentClusterSize = 0;
+                }
+
+                /**
+                 * Internal: remove references to stopped oscillators
+                 */
+                _cleanupOscillators() {
+                    for (const osc of this.oscillators) {
+                        try { osc.disconnect(); } catch (e) { /* ok */ }
+                    }
+                    this.oscillators = [];
+                }
+
+                /**
+                 * Set user volume (0–2 range, where 1 = unity)
+                 * @param {number} normalizedValue - 0 to 2
+                 */
+                setVolume(normalizedValue) {
+                    if (!this.volumeGain || !this.ctx) return;
+                    const now = this.ctx.currentTime;
+                    this.volumeGain.gain.cancelScheduledValues(now);
+                    this.volumeGain.gain.setValueAtTime(normalizedValue, now);
+                }
+
+                /**
+                 * Get analyser node for visualization
+                 * @returns {AnalyserNode|null}
+                 */
+                getAnalyser() {
+                    return this.analyser;
+                }
+
+                /**
+                 * Get current AudioContext sample rate
+                 * @returns {number}
+                 */
+                getSampleRate() {
+                    return this.ctx ? this.ctx.sampleRate : 44100;
+                }
+
+                /**
+                 * Destroy engine completely
+                 */
+                destroy() {
+                    this.stop(true);
+                    if (this.ctx) {
+                        this.ctx.close().catch(() => {});
+                        this.ctx = null;
+                    }
+                    this.oscillators = [];
+                    this.clusterGain = null;
+                    this.envelopeGain = null;
+                    this.volumeGain = null;
+                    this.analyser = null;
+                    this.isPlaying = false;
+                }
+            }
+
+            // ─────────────────────────────────────
+            // Visualizer – canvas waveform renderer
+            // ─────────────────────────────────────
+            class Visualizer {
+                /**
+                 * @param {HTMLCanvasElement} canvas
+                 */
+                constructor(canvas) {
+                    this.canvas = canvas;
+                    this.ctx2d = canvas.getContext('2d');
+                    this.analyser = null;
+                    this.animFrameId = null;
+                    this.dataArray = null;
+                    this.isRunning = false;
+                    this.resizeObserver = null;
+                    this._setupResize();
+                }
+
+                _setupResize() {
+                    const container = this.canvas.parentElement;
+                    const resize = () => {
+                        const rect = container.getBoundingClientRect();
+                        const dpr = window.devicePixelRatio || 1;
+                        const w = rect.width;
+                        const h = rect.height;
+                        if (this.canvas.width !== w * dpr || this.canvas.height !== h * dpr) {
+                            this.canvas.width = w * dpr;
+                            this.canvas.height = h * dpr;
+                            this.canvas.style.width = w + 'px';
+                            this.canvas.style.height = h + 'px';
+                            this.ctx2d.setTransform(1, 0, 0, 1, 0, 0);
+                            this.ctx2d.scale(dpr, dpr);
+                        }
+                    };
+                    this.resizeObserver = new ResizeObserver(resize);
+                    this.resizeObserver.observe(container);
+                    resize();
+                }
+
+                /**
+                 * Set analyser node and start animation
+                 * @param {AnalyserNode} analyser
+                 */
+                start(analyser) {
+                    this.analyser = analyser;
+                    this.dataArray = new Uint8Array(analyser.fftSize);
+                    this.isRunning = true;
+                    this._animate();
+                }
+
+                /**
+                 * Stop animation
+                 */
+                stop() {
+                    this.isRunning = false;
+                    if (this.animFrameId) {
+                        cancelAnimationFrame(this.animFrameId);
+                        this.animFrameId = null;
+                    }
+                    this._clearCanvas();
+                }
+
+                _animate() {
+                    if (!this.isRunning) return;
+                    this._draw();
+                    this.animFrameId = requestAnimationFrame(() => this._animate());
+                }
+
+                _draw() {
+                    if (!this.analyser) return;
+                    const ctx = this.ctx2d;
+                    const w = this.canvas.width / (window.devicePixelRatio || 1);
+                    const h = this.canvas.height / (window.devicePixelRatio || 1);
+
+                    this.analyser.getByteTimeDomainData(this.dataArray);
+
+                    // Clear
+                    ctx.clearRect(0, 0, w, h);
+
+                    // Background subtle grid
+                    ctx.strokeStyle = '#ffffff08';
+                    ctx.lineWidth = 0.5;
+                    const midY = h / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(0, midY);
+                    ctx.lineTo(w, midY);
+                    ctx.stroke();
+                    for (let x = 0; x < w; x += w / 8) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, 0);
+                        ctx.lineTo(x, h);
+                        ctx.stroke();
+                    }
+
+                    // Draw waveform
+                    const data = this.dataArray;
+                    const len = data.length;
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#5b9cf5';
+                    ctx.lineWidth = 1.8;
+                    ctx.shadowColor = '#5b9cf580';
+                    ctx.shadowBlur = 6;
+                    ctx.lineJoin = 'round';
+
+                    const xStep = w / (len - 1);
+                    for (let i = 0; i < len; i++) {
+                        const x = i * xStep;
+                        const y = (data[i] / 255) * h;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    // Subtle glow line on top
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#a0c8ff';
+                    ctx.lineWidth = 0.6;
+                    ctx.globalAlpha = 0.5;
+                    for (let i = 0; i < len; i++) {
+                        const x = i * xStep;
+                        const y = (data[i] / 255) * h;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+
+                _clearCanvas() {
+                    const ctx = this.ctx2d;
+                    const w = this.canvas.width / (window.devicePixelRatio || 1);
+                    const h = this.canvas.height / (window.devicePixelRatio || 1);
+                    ctx.clearRect(0, 0, w, h);
+                    // Draw subtle center line
+                    ctx.strokeStyle = '#ffffff06';
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(0, h / 2);
+                    ctx.lineTo(w, h / 2);
+                    ctx.stroke();
+                }
+
+                destroy() {
+                    this.stop();
+                    if (this.resizeObserver) {
+                        this.resizeObserver.disconnect();
+                        this.resizeObserver = null;
+                    }
+                }
+            }
+
+            // ─────────────────────────────────────
+            // App – ties UI + AudioEngine + Visualizer
+            // ─────────────────────────────────────
+            class App {
+                constructor() {
+                    this.engine = new AudioEngine();
+                    this.visualizer = null;
+
+                    // UI elements
+                    this.btnPlay = document.getElementById('btnPlay');
+                    this.statusDot = document.getElementById('statusDot');
+                    this.statusTag = document.getElementById('statusTag');
+                    this.baseFreqInput = document.getElementById('baseFreq');
+                    this.volumeSlider = document.getElementById('volumeSlider');
+                    this.volPercent = document.getElementById('volPercent');
+                    this.infoRange = document.getElementById('infoRange');
+                    this.infoSpread = document.getElementById('infoSpread');
+                    this.infoCount = document.getElementById('infoCount');
+                    this.clusterButtonsContainer = document.getElementById('clusterButtons');
+                    this.waveformButtonsContainer = document.getElementById('waveformButtons');
+                    this.vizCanvas = document.getElementById('vizCanvas');
+
+                    // State
+                    this.clusterSize = 10;
+                    this.waveform = 'sine';
+                    this.baseFreq = 250;
+                    this.step = 0.00001;
+                    this.volume = 1.0; // 0–2 normalized
+
+                    // Build cluster size buttons
+                    this.clusterSizes = [10, 50, 100, 150, 200, 250, 500, 1000];
+                    this._buildClusterButtons();
+                    this._bindEvents();
+                    this._updateInfo();
+                    this._updateVolumeDisplay();
+
+                    // Initialize visualizer
+                    this.visualizer = new Visualizer(this.vizCanvas);
+
+                    // Try to init audio context early (will be resumed on play if needed)
+                    this._initAudioContextOnInteraction();
+                }
+
+                _buildClusterButtons() {
+                    this.clusterButtonsContainer.innerHTML = '';
+                    this.clusterSizes.forEach(size => {
+                        const btn = document.createElement('button');
+                        btn.className = 'cluster-btn';
+                        if (size >= 500) btn.classList.add('large-cluster');
+                        btn.textContent = size;
+                        btn.dataset.size = size;
+                        if (size === this.clusterSize) btn.classList.add('selected');
+                        btn.addEventListener('click', () => this._onClusterSizeChange(size));
+                        this.clusterButtonsContainer.appendChild(btn);
+                    });
+                }
+
+                _bindEvents() {
+                    // Play / Stop
+                    this.btnPlay.addEventListener('click', () => this._togglePlay());
+
+                    // Base frequency
+                    this.baseFreqInput.addEventListener('input', () => {
+                        const val = parseFloat(this.baseFreqInput.value);
+                        if (!isNaN(val) && val >= 20 && val <= 8000) {
+                            this.baseFreq = val;
+                            this._updateInfo();
+                            // If playing, restart with new frequency
+                            if (this.engine.isPlaying) {
+                                this._restartCluster();
+                            }
+                        }
+                    });
+                    this.baseFreqInput.addEventListener('change', () => {
+                        let val = parseFloat(this.baseFreqInput.value);
+                        if (isNaN(val) || val < 20) val = 20;
+                        if (val > 8000) val = 8000;
+                        this.baseFreqInput.value = val;
+                        this.baseFreq = val;
+                        this._updateInfo();
+                        if (this.engine.isPlaying) this._restartCluster();
+                    });
+
+                    // Volume
+                    this.volumeSlider.addEventListener('input', () => {
+                        this.volume = parseInt(this.volumeSlider.value) / 100;
+                        this._updateVolumeDisplay();
+                        this.engine.setVolume(this.volume);
+                    });
+
+                    // Waveform buttons
+                    this.waveformButtonsContainer.querySelectorAll('.wave-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const wave = btn.dataset.wave;
+                            if (wave === this.waveform && this.engine.isPlaying) return;
+                            this.waveform = wave;
+                            this._updateWaveformButtons();
+                            if (this.engine.isPlaying) this._restartCluster();
+                        });
+                    });
+
+                    // Keyboard shortcut: Space to toggle play
+                    document.addEventListener('keydown', (e) => {
+                        if (e.code === 'Space' && e.target === document.body) {
+                            e.preventDefault();
+                            this._togglePlay();
+                        }
+                    });
+
+                    // Handle page unload
+                    window.addEventListener('beforeunload', () => {
+                        this.engine.destroy();
+                    });
+                }
+
+                _initAudioContextOnInteraction() {
+                    const initFn = async () => {
+                        try {
+                            await this.engine.init();
+                            this.btnPlay.disabled = false;
+                            this.btnPlay.textContent = '▶ Play Cluster';
+                        } catch (err) {
+                            console.warn('Audio init failed:', err);
+                            this.btnPlay.disabled = true;
+                            this.btnPlay.textContent = 'Audio Unavailable';
+                        }
+                    };
+
+                    // Try immediately
+                    initFn();
+
+                    // Also listen for first user interaction to resume if needed
+                    const resumeOnInteraction = async () => {
+                        if (this.engine.ctx && this.engine.ctx.state === 'suspended') {
+                            await this.engine.ctx.resume();
+                        }
+                        if (!this.engine.ctx) {
+                            await initFn();
+                        }
+                        if (this.engine.ctx && this.engine.ctx.state === 'running') {
+                            this.btnPlay.disabled = false;
+                        }
+                    };
+
+                    ['click', 'touchstart', 'keydown'].forEach(evt => {
+                        document.addEventListener(evt, resumeOnInteraction, { once: true });
+                    });
+                }
+
+                async _togglePlay() {
+                    if (this.engine.isPlaying) {
+                        this._stopCluster();
+                    } else {
+                        await this._startCluster();
+                    }
+                }
+
+                async _startCluster() {
+                    // Ensure audio context is ready
+                    if (!this.engine.ctx || this.engine.ctx.state === 'closed') {
+                        await this.engine.init();
+                    }
+                    if (this.engine.ctx.state === 'suspended') {
+                        await this.engine.ctx.resume();
+                    }
+                    if (!this.engine.ctx || this.engine.ctx.state !== 'running') {
+                        alert('Unable to start audio. Please tap/click the page first to enable audio.');
+                        return;
+                    }
+
+                    try {
+                        this.engine.start(this.baseFreq, this.step, this.clusterSize, this.waveform);
+                    } catch (err) {
+                        console.error('Failed to start cluster:', err);
+                        return;
+                    }
+
+                    // Start visualizer
+                    const analyser = this.engine.getAnalyser();
+                    if (analyser) {
+                        this.visualizer.start(analyser);
+                    }
+
+                    // Update UI
+                    this._updatePlayStateUI(true);
+                }
+
+                _stopCluster() {
+                    this.engine.stop(false);
+                    this.visualizer.stop();
+                    this._updatePlayStateUI(false);
+                }
+
+                _restartCluster() {
+                    if (!this.engine.isPlaying) return;
+                    try {
+                        this.engine.stop(true); // instant stop
+                        // Small delay to let nodes clean up
+                        setTimeout(() => {
+                            if (!this.engine.ctx || this.engine.ctx.state === 'closed') return;
+                            try {
+                                this.engine.start(this.baseFreq, this.step, this.clusterSize, this
+                                    .waveform);
+                                const analyser = this.engine.getAnalyser();
+                                if (analyser && !this.visualizer.isRunning) {
+                                    this.visualizer.start(analyser);
+                                }
+                                this._updatePlayStateUI(true);
+                            } catch (err) {
+                                console.error('Failed to restart cluster:', err);
+                                this._updatePlayStateUI(false);
+                                this.visualizer.stop();
+                            }
+                        }, 40);
+                    } catch (err) {
+                        console.error('Failed during restart:', err);
+                        this._updatePlayStateUI(false);
+                        this.visualizer.stop();
+                    }
+                }
+
+                _onClusterSizeChange(size) {
+                    if (size === this.clusterSize && this.engine.isPlaying) return;
+                    this.clusterSize = size;
+                    this._updateClusterButtons();
+                    this._updateInfo();
+                    if (this.engine.isPlaying) {
+                        this._restartCluster();
+                    }
+                }
+
+                _updatePlayStateUI(playing) {
+                    if (playing) {
+                        this.btnPlay.textContent = '■ Stop Cluster';
+                        this.btnPlay.classList.add('playing');
+                        this.statusDot.classList.add('playing');
+                        this.statusTag.textContent = 'Playing';
+                        this.statusTag.classList.add('active');
+                    } else {
+                        this.btnPlay.textContent = '▶ Play Cluster';
+                        this.btnPlay.classList.remove('playing');
+                        this.statusDot.classList.remove('playing');
+                        this.statusTag.textContent = 'Idle';
+                        this.statusTag.classList.remove('active');
+                    }
+                }
+
+                _updateClusterButtons() {
+                    this.clusterButtonsContainer.querySelectorAll('.cluster-btn').forEach(btn => {
+                        const size = parseInt(btn.dataset.size);
+                        btn.classList.toggle('selected', size === this.clusterSize);
+                    });
+                }
+
+                _updateWaveformButtons() {
+                    this.waveformButtonsContainer.querySelectorAll('.wave-btn').forEach(btn => {
+                        btn.classList.toggle('selected', btn.dataset.wave === this.waveform);
+                    });
+                }
+
+                _updateVolumeDisplay() {
+                    const pct = Math.round(this.volume * 100);
+                    this.volPercent.textContent = pct + '%';
+                }
+
+                _updateInfo() {
+                    const lowest = this.baseFreq + this.step;
+                    const highest = this.baseFreq + this.clusterSize * this.step;
+                    const spread = (this.clusterSize - 1) * this.step;
+
+                    this.infoRange.textContent =
+                        `${lowest.toFixed(5)} Hz → ${highest.toFixed(5)} Hz`;
+                    this.infoSpread.textContent = `${spread.toFixed(6)} Hz`;
+                    this.infoCount.textContent = `${this.clusterSize} tones`;
+                }
+            }
+
+            // ─────────────────────────────────────
+            // Bootstrap
+            // ─────────────────────────────────────
+            document.addEventListener('DOMContentLoaded', () => {
+                new App();
+            });
+        })();
+    </script>
+</body>
+  </html>
