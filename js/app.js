@@ -48,7 +48,7 @@ class PresetManager {
 }
 
 // ============================================
-// 2. AudioEngine (Refined + AudioWorklet)
+// 2. AudioEngine (Refined + AudioWorklet + Harmonic Mode)
 // ============================================
 class AudioEngine {
     constructor() {
@@ -92,13 +92,12 @@ class AudioEngine {
             await this.ctx.resume();
         }
 
-        // Create and connect nodes
         this.clusterGain = this.ctx.createGain();
         this.envelopeGain = this.ctx.createGain();
         this.masterGain = this.ctx.createGain();
         this.filterNode = this.ctx.createBiquadFilter();
         this.filterNode.type = 'lowpass';
-        this.filterNode.frequency.setValueAtTime(20000, this.ctx.currentTime);
+        this.filterNode.frequency.setValueAtTime(22050, this.ctx.currentTime); // Updated to 22050Hz
         this.filterNode.Q.setValueAtTime(0.1, this.ctx.currentTime);
         this.compressor = this.ctx.createDynamicsCompressor();
         this.compressor.threshold.setValueAtTime(-24, this.ctx.currentTime);
@@ -111,7 +110,6 @@ class AudioEngine {
         this.analyser.fftSize = 2048;
         this.analyser.smoothingTimeConstant = 0.4;
 
-        // Connect audio graph
         this.clusterGain.connect(this.envelopeGain);
         this.envelopeGain.connect(this.masterGain);
         this.masterGain.connect(this.filterNode);
@@ -143,7 +141,7 @@ class AudioEngine {
         }
     }
 
-    start(baseFreq, step, clusterSize, waveform, stereoWidth, attackTime, releaseTime) {
+    start(baseFreq, step, clusterSize, waveform, stereoWidth, attackTime, releaseTime, harmonicMode = false) {
         if (!this.ctx || this.ctx.state !== 'running') {
             throw new Error('AudioContext not running');
         }
@@ -156,38 +154,42 @@ class AudioEngine {
         this.isStopping = false;
         const now = this.ctx.currentTime;
 
-        // Waveform compensation for volume
         let waveComp = 1.0;
         if (waveform === 'square') waveComp = 0.6;
         if (waveform === 'sawtooth') waveComp = 0.7;
         if (waveform === 'triangle') waveComp = 0.9;
         const safeGain = waveComp / Math.sqrt(clusterSize);
 
-        // Reset envelope
         this.envelopeGain.gain.cancelScheduledValues(now);
         this.envelopeGain.gain.setValueAtTime(0, now);
         this.envelopeGain.gain.linearRampToValueAtTime(1, now + attackTime);
 
-        // Set cluster gain
         this.clusterGain.gain.cancelScheduledValues(now);
         this.clusterGain.gain.setValueAtTime(safeGain, now);
 
-        // Use AudioWorklet if available
         if (this.useWorklet && this.workletReady && this.workletNode) {
             this.workletNode.port.postMessage({
                 type: 'config',
-                config: { baseFreq, step, clusterSize, stereoWidth, waveform, attackTime, releaseTime }
+                config: {
+                    baseFreq,
+                    step,
+                    clusterSize,
+                    stereoWidth,
+                    waveform,
+                    attackTime,
+                    releaseTime,
+                    harmonicMode
+                }
             });
             this.workletNode.port.postMessage({ type: 'start' });
         } else {
-            // Fallback to oscillators
-            this._startWithOscillators(baseFreq, step, clusterSize, waveform, stereoWidth, attackTime, releaseTime);
+            this._startWithOscillators(baseFreq, step, clusterSize, waveform, stereoWidth, attackTime, releaseTime, harmonicMode);
         }
 
         this.isPlaying = true;
     }
 
-    _startWithOscillators(baseFreq, step, clusterSize, waveform, stereoWidth, attackTime, releaseTime) {
+    _startWithOscillators(baseFreq, step, clusterSize, waveform, stereoWidth, attackTime, releaseTime, harmonicMode = false) {
         const now = this.ctx.currentTime;
         let waveComp = 1.0;
         if (waveform === 'square') waveComp = 0.6;
@@ -206,7 +208,11 @@ class AudioEngine {
         const panners = [];
 
         for (let i = 1; i <= clusterSize; i++) {
-            const freq = baseFreq + i * step;
+            // NEW: Harmonic Series mode
+            const freq = harmonicMode ?
+                baseFreq * i :
+                baseFreq + i * step;
+
             const osc = this.ctx.createOscillator();
             osc.type = waveform;
             osc.frequency.setValueAtTime(freq, now);
@@ -235,17 +241,14 @@ class AudioEngine {
         const now = this.ctx.currentTime;
         const fadeTime = instant ? 0.01 : 0.5;
 
-        // Fade out envelope
         this.envelopeGain.gain.cancelScheduledValues(now);
         this.envelopeGain.gain.setValueAtTime(this.envelopeGain.gain.value, now);
         this.envelopeGain.gain.linearRampToValueAtTime(0, now + fadeTime);
 
-        // Stop worklet
         if (this.useWorklet && this.workletReady && this.workletNode) {
             this.workletNode.port.postMessage({ type: 'stop' });
         }
 
-        // Stop oscillators (fallback)
         if (this.oscillators && this.oscillators.length > 0) {
             const stopTime = now + fadeTime + 0.01;
             for (const osc of this.oscillators) {
@@ -437,7 +440,7 @@ class Visualizer {
 }
 
 // ============================================
-// 4. App
+// 4. App (Integrated with All New Features)
 // ============================================
 class App {
     constructor() {
@@ -460,7 +463,9 @@ class App {
         this.vizCanvas = document.getElementById('vizCanvas');
         this.presetNameInput = document.getElementById('presetName');
         this.btnSavePreset = document.getElementById('btnSavePreset');
+        this.btnRandomize = document.getElementById('btnRandomize'); // NEW
         this.presetListContainer = document.getElementById('presetList');
+        this.harmonicModeCheckbox = document.getElementById('harmonicMode'); // NEW
 
         // Slider Elements
         this.stepSizeSlider = document.getElementById('stepSize');
@@ -485,16 +490,19 @@ class App {
         this.stereoWidth = 0.5;
         this.attackTime = 0.15;
         this.releaseTime = 0.50;
-        this.filterCutoff = 20000;
+        this.filterCutoff = 22050; // Updated to 22050Hz
         this.filterQ = 0.1;
+        this.harmonicMode = false; // NEW: Harmonic Series mode
 
-        this.clusterSizes = [10, 50, 100, 150, 200, 250, 500, 1000];
+        // NEW: Extended cluster sizes (up to 5000)
+        this.clusterSizes = [10, 50, 100, 150, 200, 250, 500, 1000, 2000, 5000];
+
         this._buildClusterButtons();
         this._bindEvents();
         this._updateInfo();
         this._updateVolumeDisplay();
 
-        // Initialize sliders
+        // Initialize sliders (step size default to 0.01Hz)
         this._updateStepSize(parseInt(this.stepSizeSlider.value));
         this._updateFilterCutoff(parseInt(this.filterCutoffSlider.value));
         this._updateFilterQ(parseInt(this.filterQSlider.value));
@@ -512,7 +520,7 @@ class App {
         this.clusterSizes.forEach(size => {
             const btn = document.createElement('button');
             btn.className = 'cluster-btn';
-            if (size >= 500) btn.classList.add('large-cluster');
+            if (size >= 500) btn.classList.add('large-cluster'); // Updated to include 2000/5000
             btn.textContent = size;
             btn.dataset.size = size;
             if (size === this.clusterSize) btn.classList.add('selected');
@@ -524,10 +532,16 @@ class App {
     _bindEvents() {
         this.btnPlay.addEventListener('click', () => this._togglePlay());
         this.btnSavePreset.addEventListener('click', () => this._savePreset());
+        this.btnRandomize.addEventListener('click', () => this._randomizePreset()); // NEW
+        this.harmonicModeCheckbox.addEventListener('change', () => {
+            this.harmonicMode = this.harmonicModeCheckbox.checked;
+            this._updateInfo();
+            if (this.engine.isPlaying) this._restartCluster();
+        });
 
         this.baseFreqInput.addEventListener('input', () => {
             const val = parseFloat(this.baseFreqInput.value);
-            if (!isNaN(val) && val >= 20 && val <= 8000) {
+            if (!isNaN(val) && val >= 0.001 && val <= 22050) {
                 this.baseFreq = val;
                 this._updateInfo();
                 if (this.engine.isPlaying) this._restartCluster();
@@ -535,9 +549,9 @@ class App {
         });
         this.baseFreqInput.addEventListener('change', () => {
             let val = parseFloat(this.baseFreqInput.value);
-            if (isNaN(val) || val < 20) val = 20;
-            if (val > 8000) val = 8000;
-            this.baseFreqInput.value = val;
+            if (isNaN(val) || val < 0.001) val = 0.001;
+            if (val > 22050) val = 22050;
+            this.baseFreqInput.value = val.toFixed(3);
             this.baseFreq = val;
             this._updateInfo();
             if (this.engine.isPlaying) this._restartCluster();
@@ -602,310 +616,57 @@ class App {
         });
     }
 
-    // Preset Methods
-    _savePreset() {
-        const name = this.presetNameInput.value.trim();
-        if (!name) {
-            alert('Please enter a preset name');
-            return;
-        }
+    // ==================== NEW: Preset Randomizer ====================
+    _randomizePreset() {
+        // Base frequency: 0.001 to 22050 (log scale)
+        this.baseFreq = 0.001 * Math.pow(22050 / 0.001, Math.random());
+        this.baseFreq = Math.max(0.001, Math.min(22050, this.baseFreq));
 
-        const config = {
-            baseFreq: this.baseFreq,
-            step: this.step,
-            clusterSize: this.clusterSize,
-            waveform: this.waveform,
-            volume: this.volume,
-            stereoWidth: this.stereoWidth,
-            attackTime: this.attackTime,
-            releaseTime: this.releaseTime,
-            filterCutoff: this.filterCutoff,
-            filterQ: this.filterQ
-        };
+        // Step size: 0.00001 to 50 (log scale)
+        this.step = 0.00001 * Math.pow(50 / 0.00001, Math.random());
+        this.step = Math.max(0.00001, Math.min(50, this.step));
 
-        this.presetManager.save(name, config);
-        this._refreshPresetList();
-        this.presetNameInput.value = '';
-    }
+        // Cluster size: random from clusterSizes
+        this.clusterSize = this.clusterSizes[Math.floor(Math.random() * this.clusterSizes.length)];
 
-    _loadPreset(name) {
-        const config = this.presetManager.load(name);
-        if (config) {
-            this.baseFreq = config.baseFreq;
-            this.step = config.step;
-            this.clusterSize = config.clusterSize;
-            this.waveform = config.waveform;
-            this.volume = config.volume;
-            this.stereoWidth = config.stereoWidth;
-            this.attackTime = config.attackTime;
-            this.releaseTime = config.releaseTime;
-            this.filterCutoff = config.filterCutoff;
-            this.filterQ = config.filterQ;
+        // Waveform: random from options
+        const waveforms = ['sine', 'triangle', 'square', 'sawtooth'];
+        this.waveform = waveforms[Math.floor(Math.random() * waveforms.length)];
 
-            // Update UI
-            this.baseFreqInput.value = this.baseFreq;
-            this._updateStepSizeSliderFromValue(this.step);
-            this._selectClusterSize(this.clusterSize);
-            this._selectWaveform(this.waveform);
-            this.volumeSlider.value = Math.round(this.volume * 100);
-            this._updateVolumeDisplay();
-            this.stereoSpreadSlider.value = Math.round(this.stereoWidth * 100);
-            this._updateStereoSpreadDisplay();
-            this._updateAttackTimeSliderFromValue(this.attackTime);
-            this._updateReleaseTimeSliderFromValue(this.releaseTime);
-            this._updateFilterCutoffSliderFromValue(this.filterCutoff);
-            this._updateFilterQSliderFromValue(this.filterQ);
+        // Volume: 0 to 2 (0% to 200%)
+        this.volume = Math.random() * 2;
 
-            if (this.engine.isPlaying) {
-                this._restartCluster();
-            }
-        }
-    }
+        // Stereo width: 0 to 1
+        this.stereoWidth = Math.random();
 
-    _deletePreset(name, event) {
-        event.stopPropagation();
-        if (confirm(`Delete preset "${name}"?`)) {
-            this.presetManager.delete(name);
-            this._refreshPresetList();
-        }
-    }
+        // Attack: 0.005 to 5.0 (log scale)
+        this.attackTime = 0.005 * Math.pow(5.0 / 0.005, Math.random());
+        this.attackTime = Math.max(0.005, Math.min(5.0, this.attackTime));
 
-    _refreshPresetList() {
-        this.presetListContainer.innerHTML = '';
-        const presets = this.presetManager.list();
+        // Release: 0.01 to 5.0 (log scale)
+        this.releaseTime = 0.01 * Math.pow(5.0 / 0.01, Math.random());
+        this.releaseTime = Math.max(0.01, Math.min(5.0, this.releaseTime));
 
-        if (presets.length === 0) {
-            const noPresets = document.createElement('div');
-            noPresets.className = 'preset-item';
-            noPresets.textContent = 'No presets saved';
-            noPresets.style.opacity = '0.5';
-            this.presetListContainer.appendChild(noPresets);
-            return;
-        }
+        // Filter cutoff: 20 to 22050 (log scale)
+        this.filterCutoff = 20 * Math.pow(22050 / 20, Math.random());
+        this.filterCutoff = Math.max(20, Math.min(22050, this.filterCutoff));
 
-        presets.forEach(name => {
-            const presetItem = document.createElement('div');
-            presetItem.className = 'preset-item';
-            presetItem.textContent = name;
-            presetItem.addEventListener('click', () => this._loadPreset(name));
+        // Filter Q: 0.1 to 20 (linear)
+        this.filterQ = 0.1 + Math.random() * 19.9;
 
-            const deleteBtn = document.createElement('span');
-            deleteBtn.className = 'preset-delete';
-            deleteBtn.textContent = '×';
-            deleteBtn.addEventListener('click', (e) => this._deletePreset(name, e));
+        // Harmonic mode: random boolean
+        this.harmonicMode = Math.random() > 0.5;
+        this.harmonicModeCheckbox.checked = this.harmonicMode;
 
-            presetItem.appendChild(deleteBtn);
-            this.presetListContainer.appendChild(presetItem);
-        });
-    }
-
-    // UI Helpers
-    _updateStepSizeSliderFromValue(step) {
-        const min = 0.001, max = 50;
-        const val = Math.log(step / min) / Math.log(max / min) * 100;
-        this.stepSizeSlider.value = val;
-        this.stepValDisplay.textContent = step < 1 ? step.toFixed(3) + ' Hz' : step.toFixed(2) + ' Hz';
-    }
-
-    _selectClusterSize(size) {
-        this.clusterSize = size;
-        this._updateClusterButtons();
-        this._updateInfo();
-    }
-
-    _selectWaveform(waveform) {
-        this.waveform = waveform;
-        this._updateWaveformButtons();
-    }
-
-    _updateStereoSpreadDisplay() {
-        this.spreadValDisplay.textContent = Math.round(this.stereoWidth * 100) + '%';
-    }
-
-    _updateAttackTimeSliderFromValue(attackTime) {
-        const min = 0.005, max = 5.0;
-        const val = Math.log(attackTime / min) / Math.log(max / min) * 100;
-        this.attackTimeSlider.value = val;
-        this.attackValDisplay.textContent = attackTime.toFixed(2) + ' s';
-    }
-
-    _updateReleaseTimeSliderFromValue(releaseTime) {
-        const min = 0.01, max = 5.0;
-        const val = Math.log(releaseTime / min) / Math.log(max / min) * 100;
-        this.releaseTimeSlider.value = val;
-        this.releaseValDisplay.textContent = releaseTime.toFixed(2) + ' s';
-    }
-
-    _updateFilterCutoffSliderFromValue(filterCutoff) {
-        const min = 20, max = 20000;
-        const val = Math.log(filterCutoff / min) / Math.log(max / min) * 100;
-        this.filterCutoffSlider.value = val;
-        this.cutoffValDisplay.textContent = filterCutoff >= 1000 ? (filterCutoff / 1000).toFixed(1) + ' kHz' : Math.round(filterCutoff) + ' Hz';
-    }
-
-    _updateFilterQSliderFromValue(filterQ) {
-        const min = 0.1, max = 20;
-        const val = (filterQ - min) / (max - min) * 100;
-        this.filterQSlider.value = val;
-        this.qValDisplay.textContent = filterQ.toFixed(1);
-    }
-
-    // Parameter Updaters
-    _updateStepSize(val) {
-        const min = 0.001, max = 50;
-        this.step = min * Math.pow(max / min, val / 100);
-        this.stepValDisplay.textContent = this.step < 1 ? this.step.toFixed(3) + ' Hz' : this.step.toFixed(2) + ' Hz';
-        this._updateInfo();
-        if (this.engine.isPlaying) this._restartCluster();
-    }
-
-    _updateFilterCutoff(val) {
-        const min = 20, max = 20000;
-        this.filterCutoff = min * Math.pow(max / min, val / 100);
-        this.cutoffValDisplay.textContent = this.filterCutoff >= 1000 ? (this.filterCutoff / 1000).toFixed(1) + ' kHz' : Math.round(this.filterCutoff) + ' Hz';
-        this.engine.setFilterCutoff(this.filterCutoff);
-    }
-
-    _updateFilterQ(val) {
-        const min = 0.1, max = 20;
-        this.filterQ = min + (max - min) * (val / 100);
-        this.qValDisplay.textContent = this.filterQ.toFixed(1);
-        this.engine.setFilterQ(this.filterQ);
-    }
-
-    _updateStereoSpread(val) {
-        this.stereoWidth = val / 100;
-        this.spreadValDisplay.textContent = val + '%';
-        if (this.engine.isPlaying) this._restartCluster();
-    }
-
-    _updateAttackTime(val) {
-        const min = 0.005, max = 5.0;
-        this.attackTime = min * Math.pow(max / min, val / 100);
-        this.attackValDisplay.textContent = this.attackTime.toFixed(2) + ' s';
-        this.engine.setEnvelopeTimes(this.attackTime, this.releaseTime);
-    }
-
-    _updateReleaseTime(val) {
-        const min = 0.01, max = 5.0;
-        this.releaseTime = min * Math.pow(max / min, val / 100);
-        this.releaseValDisplay.textContent = this.releaseTime.toFixed(2) + ' s';
-        this.engine.setEnvelopeTimes(this.attackTime, this.releaseTime);
-    }
-
-    _updateVolumeDisplay() {
-        this.volPercent.textContent = Math.round(this.volume * 100) + '%';
-    }
-
-    _updateInfo() {
-        const lowest = this.baseFreq + this.step;
-        const highest = this.baseFreq + this.clusterSize * this.step;
-        const spread = (this.clusterSize - 1) * this.step;
-
-        this.infoRange.textContent = `${lowest.toFixed(3)} Hz → ${highest.toFixed(3)} Hz`;
-        this.infoSpread.textContent = spread < 1 ? `${spread.toFixed(4)} Hz` : `${spread.toFixed(2)} Hz`;
-        this.infoCount.textContent = `${this.clusterSize} tones`;
-    }
-
-    _updatePlayStateUI(playing) {
-        if (playing) {
-            this.btnPlay.textContent = '■ Stop Cluster';
-            this.btnPlay.classList.add('playing');
-            this.statusDot.classList.add('playing');
-            this.statusTag.textContent = 'Playing';
-            this.statusTag.classList.add('active');
-        } else {
-            this.btnPlay.textContent = '▶ Play Cluster';
-            this.btnPlay.classList.remove('playing');
-            this.statusDot.classList.remove('playing');
-            this.statusTag.textContent = 'Idle';
-            this.statusTag.classList.remove('active');
-        }
-    }
-
-    _updateClusterButtons() {
-        this.clusterButtonsContainer.querySelectorAll('.cluster-btn').forEach(btn => {
-            btn.classList.toggle('selected', parseInt(btn.dataset.size) === this.clusterSize);
-        });
-    }
-
-    _updateWaveformButtons() {
-        this.waveformButtonsContainer.querySelectorAll('.wave-btn').forEach(btn => {
-            btn.classList.toggle('selected', btn.dataset.wave === this.waveform);
-        });
-    }
-
-    _onClusterSizeChange(size) {
-        if (size === this.clusterSize && this.engine.isPlaying) return;
-        this.clusterSize = size;
-        this._updateClusterButtons();
-        this._updateInfo();
-        if (this.engine.isPlaying) this._restartCluster();
-    }
-
-    // Playback Control
-    async _togglePlay() {
-        if (this.engine.isPlaying) this._stopCluster();
-        else await this._startCluster();
-    }
-
-    async _startCluster() {
-        if (!this.engine.ctx || this.engine.ctx.state === 'closed') await this.engine.init();
-        if (this.engine.ctx.state === 'suspended') await this.engine.ctx.resume();
-        if (!this.engine.ctx || this.engine.ctx.state !== 'running') {
-            alert('Unable to start audio. Please tap/click the page first.');
-            return;
-        }
-
-        try {
-            this.engine.start(
-                this.baseFreq, this.step, this.clusterSize, this.waveform,
-                this.stereoWidth, this.attackTime, this.releaseTime
-            );
-        } catch (err) {
-            console.error('Failed to start cluster:', err);
-            return;
-        }
-
-        const analyser = this.engine.getAnalyser();
-        if (analyser) this.visualizer.start(analyser);
-
-        this._updatePlayStateUI(true);
-    }
-
-    _stopCluster() {
-        this.engine.stop(false);
-        this.visualizer.stop();
-        this._updatePlayStateUI(false);
-    }
-
-    _restartCluster() {
-        if (!this.engine.isPlaying) return;
-        try {
-            this.engine.stop(true);
-            setTimeout(() => {
-                if (!this.engine.ctx || this.engine.ctx.state === 'closed') return;
-                try {
-                    this.engine.start(
-                        this.baseFreq, this.step, this.clusterSize, this.waveform,
-                        this.stereoWidth, this.attackTime, this.releaseTime
-                    );
-                    const analyser = this.engine.getAnalyser();
-                    if (analyser && !this.visualizer.isRunning) this.visualizer.start(analyser);
-                    this._updatePlayStateUI(true);
-                } catch (err) {
-                    console.error('Failed to restart cluster:', err);
-                    this._updatePlayStateUI(false);
-                    this.visualizer.stop();
-                }
-            }, 100);
-        } catch (err) {
-            console.error('Failed during restart:', err);
-            this._updatePlayStateUI(false);
-            this.visualizer.stop();
-        }
-    }
-}
-
-// Initialize the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => new App());
+        // Update UI
+        this.baseFreqInput.value = this.baseFreq.toFixed(3);
+        this._updateStepSizeSliderFromValue(this.step);
+        this._selectClusterSize(this.clusterSize);
+        this._selectWaveform(this.waveform);
+        this.volumeSlider.value = Math.round(this.volume * 100);
+        this._updateVolumeDisplay();
+        this.stereoSpreadSlider.value = Math.round(this.stereoWidth * 100);
+        this._updateStereoSpreadDisplay();
+        this._updateAttackTimeSliderFromValue(this.attackTime);
+        this._updateReleaseTimeSliderFromValue(this.releaseTime);
+       
