@@ -12,6 +12,7 @@ class ClusterSynthProcessor extends AudioWorkletProcessor {
         this.releaseSamples = 0;
         this.stage = 0; // 0=attack, 1=sustain, 2=release, 3=done
         this.stageSamples = 0;
+        this.harmonicMode = false; // NEW: Harmonic Series mode
 
         // Waveform tables
         this.tableSize = 4096;
@@ -38,17 +39,9 @@ class ClusterSynthProcessor extends AudioWorkletProcessor {
     _initWaveformTables() {
         for (let i = 0; i < this.tableSize; i++) {
             const phase = (i / this.tableSize) * Math.PI * 2;
-
-            // Sine
             this.waveformTables.sine[i] = Math.sin(phase);
-
-            // Triangle: 2/π * asin(sin(phase))
             this.waveformTables.triangle[i] = (2 / Math.PI) * Math.asin(Math.sin(phase));
-
-            // Square: ±0.8 (reduced amplitude to avoid clipping)
             this.waveformTables.square[i] = Math.sin(phase) > 0 ? 0.8 : -0.8;
-
-            // Sawtooth: Linear ramp (-0.5 to +0.5)
             this.waveformTables.sawtooth[i] = 2 * ((phase / (Math.PI * 2)) - 0.5);
         }
     }
@@ -61,6 +54,7 @@ class ClusterSynthProcessor extends AudioWorkletProcessor {
         this.waveform = config.waveform;
         this.attackTime = config.attackTime;
         this.releaseTime = config.releaseTime;
+        this.harmonicMode = config.harmonicMode || false; // NEW: Harmonic mode flag
 
         // Rebuild oscillator data
         this.frequencies = [];
@@ -68,7 +62,12 @@ class ClusterSynthProcessor extends AudioWorkletProcessor {
         this.phase = [];
 
         for (let i = 1; i <= this.clusterSize; i++) {
-            this.frequencies[i-1] = this.baseFreq + i * this.step;
+            // NEW: Harmonic Series mode uses integer multiples
+            const freq = this.harmonicMode ?
+                this.baseFreq * i :
+                this.baseFreq + i * this.step;
+
+            this.frequencies[i-1] = freq;
             this.panValues[i-1] = (Math.random() * 2 - 1) * this.stereoWidth;
             this.phase[i-1] = Math.random() * Math.PI * 2;
         }
@@ -103,7 +102,6 @@ class ClusterSynthProcessor extends AudioWorkletProcessor {
             return true;
         }
 
-        // Select waveform table and compensation gain
         const waveformTable = this.waveformTables[this.waveform];
         const waveComp = { sine: 1.0, triangle: 0.9, square: 0.6, sawtooth: 0.7 }[this.waveform];
         const safeGain = waveComp / Math.sqrt(this.clusterSize);
@@ -112,62 +110,54 @@ class ClusterSynthProcessor extends AudioWorkletProcessor {
             this.time++;
             this.stageSamples++;
 
-            // Calculate envelope
             let envelope = 1.0;
-            if (this.stage === 0) { // Attack
+            if (this.stage === 0) {
                 envelope = this.stageSamples / this.attackSamples;
                 if (this.stageSamples >= this.attackSamples) {
-                    this.stage = 1; // Sustain
+                    this.stage = 1;
                     this.stageSamples = 0;
                 }
-            } else if (this.stage === 2) { // Release
+            } else if (this.stage === 2) {
                 envelope = 1 - (this.stageSamples / this.releaseSamples);
                 if (this.stageSamples >= this.releaseSamples) {
-                    this.stage = 3; // Done
+                    this.stage = 3;
                     envelope = 0;
                 }
             }
 
-            // Process each channel (L/R)
             for (let channel = 0; channel < channelCount; channel++) {
                 let sum = 0;
 
-                // Sum all oscillators
                 for (let i = 0; i < this.clusterSize; i++) {
                     const freq = this.frequencies[i];
                     const pan = this.panValues[i];
 
-                    // Update phase (sample-accurate)
                     const phaseIncrement = (freq / sampleRate) * Math.PI * 2;
                     this.phase[i] += phaseIncrement;
                     if (this.phase[i] >= Math.PI * 2) {
                         this.phase[i] -= Math.PI * 2;
                     }
 
-                    // Look up waveform sample (linear interpolation)
                     const tableIndex = (this.phase[i] / (Math.PI * 2)) * this.tableSize;
                     const intIndex = Math.floor(tableIndex) % this.tableSize;
                     const frac = tableIndex - intIndex;
                     const sampleValue = waveformTable[intIndex] * (1 - frac) +
                                         waveformTable[(intIndex + 1) % this.tableSize] * frac;
 
-                    // Apply stereo panning
                     let panFactor;
-                    if (channel === 0) { // Left channel
+                    if (channel === 0) {
                         panFactor = pan <= 0 ? 1 : 1 - pan;
-                    } else { // Right channel
+                    } else {
                         panFactor = pan >= 0 ? 1 : 1 + pan;
                     }
 
                     sum += sampleValue * panFactor;
                 }
 
-                // Apply gain and envelope
                 output[channel][sample] = sum * safeGain * envelope;
             }
         }
 
-        // Reset state if release is done
         if (this.stage === 3) {
             this.isPlaying = false;
             this.stage = 0;
