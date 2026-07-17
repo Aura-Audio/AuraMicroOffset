@@ -2,121 +2,186 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Micro-Frequency Cluster Synth (Extended)</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0f0f13">
+    <meta name="color-scheme" content="dark">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- iOS PWA Specifics -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Microtone">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <title>Microtone — Cluster Synthesizer</title>
+    <meta name="description" content="An offline-capable micro-frequency cluster synthesizer. Generate rich harmonic textures in your browser.">
+
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="app">
-        <div class="header">
-            <h1>
-                <span class="dot" id="statusDot"></span>
-                Micro-Cluster Synth
-            </h1>
-            <span class="status-tag" id="statusTag">Idle</span>
-        </div>
+    <!-- Skip link for keyboard users -->
+    <a href="#main-controls" class="skip-link">Skip to controls</a>
 
-        <div class="viz-container" id="vizContainer">
-            <canvas id="vizCanvas"></canvas>
-            <div class="viz-overlay" id="vizLabel">time domain</div>
-        </div>
-
-        <!-- Harmonic Series Toggle -->
-        <div class="controls">
-            <div class="control-group">
-                <label>
-                    <input type="checkbox" id="harmonicMode" class="toggle-checkbox">
-                    <span class="toggle-label">Harmonic Series Mode</span>
-                </label>
-            </div>
-        </div>
-
-        <div class="controls">
-            <div class="control-group">
-                <label for="baseFreq">Base Freq (Hz)</label>
-                <input type="number" id="baseFreq" value="250" min="0.001" max="22050" step="0.001">
-            </div>
-            <div class="control-group flex-grow">
-                <label for="stepSize">Step Size <span id="stepVal" class="val-display">0.01 Hz</span></label>
-                <input type="range" id="stepSize" min="0" max="100" value="50" step="1">
-            </div>
-            <div class="control-group" style="flex:2;min-width:200px;">
-                <label>Cluster Size</label>
-                <div class="cluster-sizes" id="clusterButtons"></div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <div class="control-group">
-                <label>Waveform</label>
-                <div class="waveform-select" id="waveformButtons">
-                    <button class="wave-btn selected" data-wave="sine">Sine</button>
-                    <button class="wave-btn" data-wave="triangle">Triangle</button>
-                    <button class="wave-btn" data-wave="square">Square</button>
-                    <button class="wave-btn" data-wave="sawtooth">Sawtooth</button>
-                </div>
-            </div>
-            <div class="control-group volume-group">
-                <label>Volume</label>
-                <input type="range" id="volumeSlider" min="0" max="200" value="100" step="1">
-                <div class="vol-label-row">
-                    <span>0%</span>
-                    <span id="volPercent">100%</span>
-                    <span>200%</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="controls tone-shaping">
-            <div class="control-group flex-grow">
-                <label for="filterCutoff">Filter Cutoff <span id="cutoffVal" class="val-display">20.0 kHz</span></label>
-                <input type="range" id="filterCutoff" min="0" max="100" value="100" step="1">
-            </div>
-            <div class="control-group flex-grow">
-                <label for="filterQ">Resonance (Q) <span id="qVal" class="val-display">0.1</span></label>
-                <input type="range" id="filterQ" min="0" max="100" value="0" step="1">
-            </div>
-            <div class="control-group flex-grow">
-                <label for="stereoSpread">Stereo Spread <span id="spreadVal" class="val-display">50%</span></label>
-                <input type="range" id="stereoSpread" min="0" max="100" value="50" step="1">
-            </div>
-        </div>
-
-        <div class="controls tone-shaping">
-            <div class="control-group flex-grow">
-                <label for="attackTime">Attack (s) <span id="attackVal" class="val-display">0.15</span></label>
-                <input type="range" id="attackTime" min="0" max="100" value="15" step="1">
-            </div>
-            <div class="control-group flex-grow">
-                <label for="releaseTime">Release (s) <span id="releaseVal" class="val-display">0.50</span></label>
-                <input type="range" id="releaseTime" min="0" max="100" value="50" step="1">
-            </div>
-        </div>
-
-        <div class="play-section">
-            <button class="btn-play" id="btnPlay" disabled>▶ Play Cluster</button>
-        </div>
-
-        <div class="info-bar" id="infoBar">
-            Cluster range: <span id="infoRange">—</span> &nbsp;|&nbsp;
-            Spread: <span class="highlight" id="infoSpread">—</span> &nbsp;|&nbsp;
-            Tones: <span id="infoCount">—</span>
-        </div>
-
-        <!-- Preset System UI -->
-        <div class="controls">
-            <div class="control-group" style="flex: 1; min-width: 100%;">
-                <label>Presets</label>
-                <div class="preset-controls">
-                    <input type="text" id="presetName" placeholder="Preset Name" class="preset-input">
-                    <button id="btnSavePreset" class="preset-btn">Save</button>
-                    <button id="btnRandomize" class="preset-btn">Randomize</button>
-                </div>
-                <div class="preset-list" id="presetList"></div>
-            </div>
-        </div>
+    <!-- iOS Install Prompt (shown only on iOS Safari) -->
+    <div id="ios-install-banner" class="install-banner" role="alert" aria-live="polite" hidden>
+        <span>Install Microtone: Tap <span class="ios-share-icon" aria-hidden="true">□↑</span> then "Add to Home Screen"</span>
+        <button id="dismiss-ios-banner" aria-label="Dismiss install prompt">×</button>
     </div>
 
-    <script src="js/app.js"></script>
+    <!-- Chrome/Edge Install Prompt -->
+    <div id="pwa-install-banner" class="install-banner" role="alert" aria-live="polite" hidden>
+        <span>Install Microtone for offline use</span>
+        <button id="install-pwa-btn" class="btn btn-small">Install</button>
+        <button id="dismiss-pwa-banner" aria-label="Dismiss install prompt">×</button>
+    </div>
+
+    <main id="app" class="app-container">
+        <header class="app-header">
+            <h1>Microtone</h1>
+            <p class="subtitle">Micro-Frequency Cluster Synthesizer</p>
+            <div class="status-bar">
+                <span id="audio-status" class="status-indicator" aria-live="polite">Audio: Standby</span>
+                <span id="battery-mode" class="eco-badge" hidden>Eco Mode</span>
+            </div>
+        </header>
+
+        <section class="visualizer-section" aria-label="Audio visualizer">
+            <canvas id="visualizer" role="img" aria-label="Real-time frequency spectrum visualization"></canvas>
+            <button id="toggle-vis" class="vis-toggle" aria-label="Toggle visualizer" title="Toggle visualizer (V)">
+                <span aria-hidden="true">◧</span>
+            </button>
+        </section>
+
+        <section id="main-controls" class="controls-section" aria-label="Synthesizer controls">
+            <!-- Primary Transport -->
+            <div class="transport-controls">
+                <button id="play-btn" class="btn btn-primary" aria-label="Play cluster tone">
+                    <span class="btn-icon" aria-hidden="true">▶</span>
+                    <span class="btn-text">Play</span>
+                </button>
+                <button id="stop-btn" class="btn btn-secondary" aria-label="Stop cluster tone" disabled>
+                    <span class="btn-icon" aria-hidden="true">■</span>
+                    <span class="btn-text">Stop</span>
+                </button>
+            </div>
+
+            <!-- Parameter Controls -->
+            <fieldset class="control-group">
+                <legend>Cluster Parameters</legend>
+
+                <div class="slider-row">
+                    <label for="base-freq">Base Frequency <span class="value-readout" id="base-freq-val">440</span> Hz</label>
+                    <input type="range" id="base-freq" min="20" max="2000" value="440" step="1"
+                           aria-describedby="base-freq-hint">
+                    <span id="base-freq-hint" class="sr-only">Adjust base frequency from 20 to 2000 Hertz</span>
+                </div>
+
+                <div class="slider-row">
+                    <label for="step-size">Step Size <span class="value-readout" id="step-val">1.0</span> Hz</label>
+                    <input type="range" id="step-size" min="0.1" max="50" value="1.0" step="0.1"
+                           aria-describedby="step-hint">
+                    <span id="step-hint" class="sr-only">Adjust microtonal step size from 0.1 to 50 Hertz</span>
+                </div>
+
+                <div class="slider-row">
+                    <label for="cluster-size">Cluster Size <span class="value-readout" id="cluster-val">8</span></label>
+                    <input type="range" id="cluster-size" min="1" max="64" value="8" step="1"
+                           aria-describedby="cluster-hint">
+                    <span id="cluster-hint" class="sr-only">Number of oscillators in cluster, 1 to 64</span>
+                </div>
+
+                <div class="slider-row">
+                    <label for="stereo-width">Stereo Width <span class="value-readout" id="stereo-val">80</span>%</label>
+                    <input type="range" id="stereo-width" min="0" max="100" value="80" step="1"
+                           aria-describedby="stereo-hint">
+                    <span id="stereo-hint" class="sr-only">Stereo spread percentage, 0 to 100</span>
+                </div>
+            </fieldset>
+
+            <fieldset class="control-group">
+                <legend>Envelope & Timbre</legend>
+
+                <div class="slider-row">
+                    <label for="attack-time">Attack <span class="value-readout" id="attack-val">0.1</span>s</label>
+                    <input type="range" id="attack-time" min="0.001" max="5" value="0.1" step="0.001"
+                           aria-describedby="attack-hint">
+                    <span id="attack-hint" class="sr-only">Attack time in seconds, 0.001 to 5</span>
+                </div>
+
+                <div class="slider-row">
+                    <label for="release-time">Release <span class="value-readout" id="release-val">2.0</span>s</label>
+                    <input type="range" id="release-time" min="0.01" max="10" value="2.0" step="0.01"
+                           aria-describedby="release-hint">
+                    <span id="release-hint" class="sr-only">Release time in seconds, 0.01 to 10</span>
+                </div>
+
+                <div class="select-row">
+                    <label for="waveform">Waveform</label>
+                    <select id="waveform" aria-describedby="waveform-hint">
+                        <option value="sine">Sine</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="square">Square</option>
+                        <option value="sawtooth">Sawtooth</option>
+                    </select>
+                    <span id="waveform-hint" class="sr-only">Select oscillator waveform shape</span>
+                </div>
+
+                <div class="select-row">
+                    <label for="harmonic-mode">Harmonic Mode</label>
+                    <select id="harmonic-mode" aria-describedby="harmonic-hint">
+                        <option value="linear">Linear</option>
+                        <option value="harmonic">Harmonic Series</option>
+                        <option value="subharmonic">Subharmonic</option>
+                        <option value="just">Just Intonation</option>
+                    </select>
+                    <span id="harmonic-hint" class="sr-only">Select frequency distribution mode</span>
+                </div>
+            </fieldset>
+
+            <!-- Settings -->
+            <fieldset class="control-group settings-group">
+                <legend>Settings</legend>
+                <div class="toggle-row">
+                    <label class="toggle" for="eco-mode">
+                        <input type="checkbox" id="eco-mode" aria-describedby="eco-hint">
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-label">Eco Mode</span>
+                    </label>
+                    <span id="eco-hint" class="sr-only">Reduce CPU usage and battery drain by lowering visualizer quality</span>
+                </div>
+
+                <div class="toggle-row">
+                    <label class="toggle" for="reduced-motion">
+                        <input type="checkbox" id="reduced-motion" aria-describedby="motion-hint">
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-label">Reduce Motion</span>
+                    </label>
+                    <span id="motion-hint" class="sr-only">Minimize animation for accessibility</span>
+                </div>
+            </fieldset>
+        </section>
+
+        <footer class="app-footer">
+            <p>Offline-ready • Install to home screen for best experience</p>
+            <div class="keyboard-hints" aria-label="Keyboard shortcuts">
+                <kbd>Space</kbd> Play/Stop • <kbd>V</kbd> Toggle Visualizer • <kbd>↑↓</kbd> Frequency
+            </div>
+        </footer>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- iOS Silent Audio Keep-Alive -->
+    <audio id="ios-silence-loop" loop preload="auto" playsinline crossorigin="anonymous" style="display:none;" aria-hidden="true">
+        <source src="data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+    </audio>
+
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
